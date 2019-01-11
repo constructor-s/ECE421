@@ -39,7 +39,7 @@ def gradMSE(W, b, x, y, reg):
     x = np.concatenate([-np.ones([1, x.shape[1]]), x], axis=0)
     
     err = W.T.dot(x) - y
-    mse = (err * 1.0 / x.shape[1]).dot(x.T).T
+    mse = 1.0 / x.shape[1] * x.dot(err.T)
     regularization = reg * W
     
     grad = mse + regularization
@@ -54,11 +54,13 @@ def gradCE(W, b, x, y, reg):
     # Your implementation here
     pass
 
-def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS):
+def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS,
+                 ):
     # Your implementation here
     mseList = []
     for i in range(iterations):
-        print('Iteration', i, end='    \r')
+        if i % 5 == 0:
+            print('\rIteration %03d/%03d' % (i, iterations), end='\r')
         gradW, gradB= gradMSE(W, b, trainingData, trainingLabels, reg)
         W = W - alpha * gradW
         b = b - alpha * gradB
@@ -68,6 +70,7 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
         if np.abs(mse) < EPS:
             break
         
+    print()    
     return W, b, mseList
 
 def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rate=None):
@@ -76,20 +79,70 @@ def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rat
 
 
 if __name__ == '__main__':
+    linear_regression_epochs = 100
+    save_linear_regression = False
+    plot_linear_regression = True
+    run_logistic_regression = True
+    run_sgd = True    
+    
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
     
     trainDataVec = trainData.reshape([trainData.shape[0], trainData.shape[1]*trainData.shape[2]]).T
     validDataVec = validData.reshape([validData.shape[0], validData.shape[1]*validData.shape[2]]).T
     testDataVec = testData.reshape([testData.shape[0], testData.shape[1]*testData.shape[2]]).T
     
-    for alpha in [0.005, 0.001, 0.0001]:
+    if linear_regression_epochs:
+        #%% Part 1.3
+        mse = []
+        weight = []
+        bias = []
+        alphaList = [0.005, 0.001, 0.0001]
+        for alpha in alphaList:
+            print('Alpha =', alpha)
+            
+            W = np.zeros([trainDataVec.shape[0], 1])
+            b = np.array([[0]])
+            W, b, mseList = grad_descent(W, b, trainDataVec, trainTarget.T, alpha, linear_regression_epochs, 0, 1e-6)
+            
+            mse.append(mseList)
+            weight.append(W)
+            bias.append(b)
+            
+        mse = np.array(mse)
+        weight = np.array(weight)
+        bias = np.array(bias)
         
-        W = np.zeros([trainDataVec.shape[0], 1])
-        b = np.array([[0]])
-        W, b, mseList = grad_descent(W, b, trainDataVec, trainTarget.T, alpha, 500, 0, 1e-6)
+        if save_linear_regression:
+            np.savez('linear_regression_results.npz', mse=mse, weight=weight, bias=bias)
         
+    if plot_linear_regression:
+        #%%
+        plt.figure()
+        plt.plot(mse.T)
+        plt.legend([r'$\alpha=%g$' % i for i in alphaList])
+        plt.grid()
+        plt.xlabel('Epoches')
+        plt.ylabel('Mean Square Error')
         
-        break
+        print('Alpha\tTraining Error')
+        for alpha, mseList in zip(alphaList, mse):
+            print(alpha, '\t', mseList[-1])
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
