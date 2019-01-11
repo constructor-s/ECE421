@@ -81,8 +81,8 @@ def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rat
 
 
 if __name__ == '__main__':
-    linear_regression_epochs = 50
-    save_linear_regression = False
+    linear_regression_epochs = 5000
+    save_linear_regression = True
     plot_linear_regression = True
     run_logistic_regression = True
     run_sgd = True    
