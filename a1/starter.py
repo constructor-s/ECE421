@@ -1,4 +1,4 @@
-import tensorflow as tf
+# import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -23,10 +23,10 @@ def loadData():
 
 def MSE(W, b, x, y, reg):
     # Your implementation here
-    W = np.concatenate([b, W])
-    x = np.concatenate([-np.ones([1, x.shape[1]]), x], axis=0)
+#    W = np.concatenate([b, W])
+#    x = np.concatenate([-np.ones([1, x.shape[1]]), x], axis=0)
     
-    err = W.T.dot(x) - y
+    err = W.T.dot(x) + b - y
     mse = err.dot(err.T) * 1.0 / 2.0 / x.shape[1]
     regularization = reg * 0.5  * W.T.dot(W)
 
@@ -35,16 +35,18 @@ def MSE(W, b, x, y, reg):
 
 def gradMSE(W, b, x, y, reg):
     # Your implementation here
-    W = np.concatenate([b, W])
-    x = np.concatenate([-np.ones([1, x.shape[1]]), x], axis=0)
+#    W = np.concatenate([b, W])
+#    x = np.concatenate([-np.ones([1, x.shape[1]]), x], axis=0)
     
-    err = W.T.dot(x) - y
+    err = W.T.dot(x) + b - y
     mse = 1.0 / x.shape[1] * x.dot(err.T)
     regularization = reg * W
     
     grad = mse + regularization
     
-    return grad[1:], grad[0]
+    gradB = np.sum(1.0 / x.shape[1] * err)
+    
+    return grad, gradB
 
 def crossEntropyLoss(W, b, x, y, reg):
     # Your implementation here
@@ -79,7 +81,7 @@ def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rat
 
 
 if __name__ == '__main__':
-    linear_regression_epochs = 100
+    linear_regression_epochs = 50
     save_linear_regression = False
     plot_linear_regression = True
     run_logistic_regression = True
@@ -123,6 +125,7 @@ if __name__ == '__main__':
         plt.grid()
         plt.xlabel('Epoches')
         plt.ylabel('Mean Square Error')
+        plt.savefig('fig13.png', dpi=150)
         
         print('Alpha\tTraining Error')
         for alpha, mseList in zip(alphaList, mse):
