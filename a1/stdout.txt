@@ -1,0 +1,20 @@
+Alpha = 0.005
+Iteration 4995/5000
+Alpha = 0.001
+Iteration 4995/5000
+Alpha = 0.0001
+Iteration 4995/5000
+Alpha   Training Error
+0.005    0.013658559538320486
+0.001    0.017216724676250447
+0.0001   0.023056365992701597
+Lambda = 0.001
+Iteration 4995/5000
+Lambda = 0.1
+Iteration 4995/5000
+Lambda = 0.5
+Iteration 4995/5000
+Lambda  Training Error
+0.001    0.013721638735222795
+0.1      0.0167203503500896
+0.5      0.02039280912288389
