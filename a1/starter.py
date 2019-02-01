@@ -31,7 +31,6 @@ def MSE(W, b, x, y, reg):
     regularization = reg * 0.5  * W.T.dot(W)
 
     return mse + regularization    
-    
 
 def gradMSE(W, b, x, y, reg):
     # Your implementation here
@@ -220,7 +219,23 @@ if __name__ == '__main__':
                 for lambd, mseList, validList, testList in zip(lambdList, mse, validMse, testMse):
                     print(lambd, '\t', mseList[-1], '\t', validList[-1], '\t', testList[-1])
                 
-    
+        #%% 1.5 Normal equation
+        X = trainDataVec.T
+        X = np.hstack([np.ones([X.shape[0], 1]), X])
+        W = np.linalg.pinv(X).dot(trainTarget)
+        print('1.5 Normal equation')
+        print('Training Accuracy\tValidation Accuracy\tTesting Accuracy')
+        
+        def accuracy(x, y):
+            X = x.T
+            X = np.hstack([np.ones([X.shape[0], 1]), X])            
+            return np.count_nonzero(((X.dot(W)) > 0.5) == y) * 1.0 / len(y)
+        
+        print('%.3f' % accuracy(trainDataVec, trainTarget), '\t', 
+              '%.3f' % accuracy(validDataVec, validTarget), '\t', 
+              '%.3f' % accuracy(testDataVec, testTarget))
+        
+        
     
     
     
