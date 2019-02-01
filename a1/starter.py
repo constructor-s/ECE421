@@ -216,9 +216,9 @@ if __name__ == '__main__':
                 axs[i].legend([r'$\lambda=%g$' % i for i in lambdList])
                 plt.savefig('fig14.png', dpi=150)
                 
-                print('Alpha\tTraining Error\tValidation Error\tTesting Error')
+                print('Lambda\tTraining Error\tValidation Error\tTesting Error')
                 for lambd, mseList, validList, testList in zip(lambdList, mse, validMse, testMse):
-                    print(alpha, '\t', mseList[-1], '\t', validList[-1], '\t', testList[-1])
+                    print(lambd, '\t', mseList[-1], '\t', validList[-1], '\t', testList[-1])
                 
     
     
