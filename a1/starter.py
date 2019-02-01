@@ -56,9 +56,12 @@ def gradCE(W, b, x, y, reg):
     # Your implementation here
     pass
 
-def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS):
+def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS,
+                 validData=None, validTarget=None, testData=None, testTarget=None):
     # Your implementation here
     mseList = []
+    validMseList = []
+    testMseList = []
     for i in range(iterations):
         if i % 5 == 0:
             print('\rIteration %03d/%03d' % (i, iterations), end='\r')
@@ -68,11 +71,24 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
         mse = MSE(W, b, trainingData, trainingLabels, reg)
         mse = np.asscalar(mse)
         mseList.append(mse)
+        
+        if validData is not None and validTarget is not None:
+            validMseList.append(np.asscalar(
+                    MSE(W, b, validData, validTarget, reg)
+                    ))
+        if testData is not None and testTarget is not None:
+            testMseList.append(np.asscalar(
+                    MSE(W, b, testData, testTarget, reg)
+                    ))
+        
         if np.abs(mse) < EPS:
             break
         
     print()    
-    return W, b, mseList
+    if validData is None or validTarget is None or testData is None or testTarget is None:
+        return W, b, mseList
+    else:
+        return W, b, mseList, validMseList, testMseList
 
 def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rate=None):
     # Your implementation here
@@ -81,6 +97,8 @@ def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rat
 
 if __name__ == '__main__':
     linear_regression_epochs = 5000
+    run13 = False
+    run14 = True
     save_linear_regression = False
     plot_linear_regression = True
     run_logistic_regression = True
@@ -94,80 +112,114 @@ if __name__ == '__main__':
     
     if linear_regression_epochs:
         #%% Part 1.3
-        mse = []
-        weight = []
-        bias = []
-        alphaList = [0.005, 0.001, 0.0001]
-        for alpha in alphaList:
-            print('Alpha =', alpha)
+        if run13:
+            mse = []
+            validMse = []
+            testMse = []
+            weight = []
+            bias = []
+            alphaList = [0.005, 0.001, 0.0001]
+            for alpha in alphaList:
+                print('Alpha =', alpha)
+                
+                W = np.zeros([trainDataVec.shape[0], 1])
+                b = np.array([[0]])
+                W, b, mseList, validMseList, testMseList = grad_descent(
+                        W, b, trainDataVec, trainTarget.T, alpha, 
+                        linear_regression_epochs, 0, 1e-6,
+                        validDataVec, validTarget.T, testDataVec, testTarget.T)
+                
+                mse.append(mseList)
+                validMse.append(validMseList)
+                testMse.append(testMseList)
+                
+                weight.append(W)
+                bias.append(b)
+                
+            mse = np.array(mse)
+            validMse = np.array(validMse)
+            testMse = np.array(testMse)
             
-            W = np.zeros([trainDataVec.shape[0], 1])
-            b = np.array([[0]])
-            W, b, mseList = grad_descent(W, b, trainDataVec, trainTarget.T, alpha, linear_regression_epochs, 0, 1e-6)
+            weight = np.array(weight)
+            bias = np.array(bias)
             
-            mse.append(mseList)
-            weight.append(W)
-            bias.append(b)
+            if save_linear_regression:
+                np.savez('linear_regression_results13.npz', mse=mse, weight=weight, bias=bias)
             
-        mse = np.array(mse)
-        weight = np.array(weight)
-        bias = np.array(bias)
-        
-        if save_linear_regression:
-            np.savez('linear_regression_results13.npz', mse=mse, weight=weight, bias=bias)
-        
-        if plot_linear_regression:
-            #%%
-            plt.figure()
-            plt.plot(mse.T)
-            plt.legend([r'$\alpha=%g$' % i for i in alphaList])
-            plt.grid()
-            plt.xlabel('Epoches')
-            plt.ylabel('Mean Square Error')
-            plt.savefig('fig13.png', dpi=150)
-            
-            print('Alpha\tTraining Error')
-            for alpha, mseList in zip(alphaList, mse):
-                print(alpha, '\t', mseList[-1])
+            if plot_linear_regression:
+                #%%
+                fig, axs = plt.subplots(1, 3, figsize=(12, 4), sharey=True)
+                for i, (err, title) in enumerate(zip(
+                        (mse, validMse, testMse),
+                        ('1.3: Training Loss', '1.3: Validation Loss', '1.3: Testing Loss'),
+                        )):
+                    axs[i].plot(err.T)
+                    axs[i].set_title(title)
+                    axs[i].grid()
+                    axs[i].set_xlabel('Epoches')
+                    axs[i].set_ylabel('Mean Square Error')
+                
+                axs[i].legend([r'$\alpha=%g$' % i for i in alphaList])
+                plt.savefig('fig13.png', dpi=150)
+                
+                print('Alpha\tTraining Error\tValidation Error\tTesting Error')
+                for alpha, mseList, validList, testList in zip(alphaList, mse, validMse, testMse):
+                    print(alpha, '\t', mseList[-1], '\t', validList[-1], '\t', testList[-1])
                 
         #%% Part 1.4
-        mse = []
-        weight = []
-        bias = []
-        alpha = 0.005
-        lambdList = (0.001, 0.1, 0.5)
-        for lambd in lambdList:
-            print('Lambda =', lambd)
+        if run14:
+            mse = []
+            validMse = []
+            testMse = []
+            weight = []
+            bias = []
+            alpha = 0.005
+            lambdList = (0.001, 0.1, 0.5)
+            for lambd in lambdList:
+                print('Lambda =', lambd)
+                
+                W = np.zeros([trainDataVec.shape[0], 1])
+                b = np.array([[0]])
+                W, b, mseList, validMseList, testMseList = grad_descent(
+                            W, b, trainDataVec, trainTarget.T, alpha, 
+                            linear_regression_epochs, lambd, 1e-6,
+                            validDataVec, validTarget.T, testDataVec, testTarget.T)
+                
+                mse.append(mseList)
+                validMse.append(validMseList)
+                testMse.append(testMseList)
+                weight.append(W)
+                bias.append(b)
+                
+            mse = np.array(mse)
+            validMse = np.array(validMse)
+            testMse = np.array(testMse)
+            weight = np.array(weight)
+            bias = np.array(bias)
             
-            W = np.zeros([trainDataVec.shape[0], 1])
-            b = np.array([[0]])
-            W, b, mseList = grad_descent(W, b, trainDataVec, trainTarget.T, alpha, linear_regression_epochs, lambd, 1e-6)
-            
-            mse.append(mseList)
-            weight.append(W)
-            bias.append(b)
-            
-        mse = np.array(mse)
-        weight = np.array(weight)
-        bias = np.array(bias)
-        
-        if save_linear_regression:
-            np.savez('linear_regression_results14.npz', mse=mse, weight=weight, bias=bias)
-            
-        if plot_linear_regression:
-            #%%
-            plt.figure()
-            plt.plot(mse.T)
-            plt.legend([r'$\lambda=%g$' % i for i in lambdList])
-            plt.grid()
-            plt.xlabel('Epoches')
-            plt.ylabel('Mean Square Error')
-            plt.savefig('fig14.png', dpi=150)
-            
-            print('Lambda\tTraining Error')
-            for lambd, mseList in zip(lambdList, mse):
-                print(lambd, '\t', mseList[-1])
-            
+            if save_linear_regression:
+                np.savez('linear_regression_results14.npz', mse=mse, weight=weight, bias=bias)
+                
+            if plot_linear_regression:
+                #%%
+                fig, axs = plt.subplots(1, 3, figsize=(12, 4), sharey=True)
+                for i, (err, title) in enumerate(zip(
+                        (mse, validMse, testMse),
+                        ('1.4: Training Loss', '1.4: Validation Loss', '1.4: Testing Loss'),
+                        )):
+                    axs[i].plot(err.T)
+                    axs[i].set_title(title)
+                    axs[i].grid()
+                    axs[i].set_xlabel('Epoches')
+                    axs[i].set_ylabel('Mean Square Error')
+                
+                axs[i].legend([r'$\lambda=%g$' % i for i in lambdList])
+                plt.savefig('fig14.png', dpi=150)
+                
+                print('Alpha\tTraining Error\tValidation Error\tTesting Error')
+                for lambd, mseList, validList, testList in zip(lambdList, mse, validMse, testMse):
+                    print(alpha, '\t', mseList[-1], '\t', validList[-1], '\t', testList[-1])
+                
     
     
     
