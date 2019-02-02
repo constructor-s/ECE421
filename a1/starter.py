@@ -99,6 +99,9 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
     mseList = []
     validMseList = []
     testMseList = []
+    accuracyList = []
+    validAccuracyList = []
+    testAccuracyList = []
     for i in range(iterations):
         if i % 50 == 49:
             print('\rIteration %03d/%03d' % (i, iterations), end='\r')
@@ -117,6 +120,11 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
             testMseList.append(np.asscalar(
                     errorFun(W, b, testData, testTarget, reg)
                     ))
+
+        accuracy = lambda x, y: np.count_nonzero((W.T.dot(x) + b > 0.5) == y) * 1.0 / y.size
+        accuracyList.append(accuracy(trainDataVec, trainingLabels))
+        validAccuracyList.append(accuracy(validDataVec, validTarget))
+        testAccuracyList.append(accuracy(testDataVec, testTarget))
         
         if np.abs(mse) < EPS:
             break
@@ -125,7 +133,7 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
     if validData is None or validTarget is None or testData is None or testTarget is None:
         return W, b, mseList
     else:
-        return W, b, mseList, validMseList, testMseList
+        return W, b, mseList, validMseList, testMseList, accuracyList, validAccuracyList, testAccuracyList
 
 def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rate=None):
     # Your implementation here
@@ -158,6 +166,8 @@ if __name__ == '__main__':
         weight = []
         bias = []
         accu = []
+        validAccu = []
+        testAccu = []
         runtime = []
 
         for alpha, lambd in alphaLambdList:
@@ -166,7 +176,7 @@ if __name__ == '__main__':
             W = np.zeros([trainDataVec.shape[0], 1])
             b = np.array([[0]])
             tic = time.clock()
-            W, b, mseList, validMseList, testMseList = grad_descent(
+            W, b, mseList, validMseList, testMseList, accuracyList, validAccuracyList, testAccuracyList = grad_descent(
                 W, b, trainDataVec, trainTarget.T, alpha,
                 linear_regression_epochs, lambd, 1e-6, lossType,
                 validDataVec, validTarget.T, testDataVec, testTarget.T)
@@ -179,15 +189,9 @@ if __name__ == '__main__':
             weight.append(W)
             bias.append(b)
 
-            def accuracy(x, y):
-                y = y.T
-                return np.count_nonzero((W.T.dot(x) + b > 0.5) == y) * 1.0 / y.size
-
-            accu.append((
-                accuracy(trainDataVec, trainTarget),
-                accuracy(validDataVec, validTarget),
-                accuracy(testDataVec, testTarget),
-            ))
+            accu.append(accuracyList)
+            validAccu.append(validAccuracyList)
+            testAccu.append(testAccuracyList)
 
         mse = np.array(mse)
         validMse = np.array(validMse)
@@ -197,23 +201,30 @@ if __name__ == '__main__':
         bias = np.array(bias)
 
         accu = np.array(accu)
+        validAccu = np.array(validAccu)
+        testAccu = np.array(testAccu)
 
         if save_linear_regression and figfilename is not None:
             np.savez(figfilename + '.npz', mse=mse, weight=weight, bias=bias)
 
         if plot_linear_regression:
-            fig, axs = plt.subplots(1, 3, figsize=(12, 4), sharey=True)
-            for i, (err, title) in enumerate(zip(
-                    (mse, validMse, testMse),
-                    ('Training Loss', 'Validation Loss', 'Testing Loss'),
+            fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharey='row')
+            for i, (ax, err, title) in enumerate(zip(
+                    axs.ravel(),
+                    (mse, validMse, testMse, accu, validAccu, testAccu),
+                    ('Training Loss', 'Validation Loss', 'Testing Loss',
+                     'Training Accuracy', 'Validation Accuracy', 'Testing Accuracy'),
             )):
-                axs[i].plot(err.T)
-                axs[i].set_title(title)
-                axs[i].grid()
-                axs[i].set_xlabel('Epoches')
-                axs[i].set_ylabel('Mean Square Error')
+                ax.plot(err.T)
+                ax.set_title(title)
+                ax.grid()
+                ax.set_xlabel('Epoches')
+                if i <= 2:
+                    ax.set_ylabel('Mean Square Error')
+                else:
+                    ax.set_ylabel('Accuracy')
 
-            axs[-1].legend([r'$\alpha=%g,\lambda=%g$' % (alpha, lambd)
+            axs[0, 0].legend([r'$\alpha=%g,\lambda=%g$' % (alpha, lambd)
                             for alpha, lambd in alphaLambdList])
             if figfilename:
                 plt.savefig(figfilename, dpi=150)
@@ -221,11 +232,11 @@ if __name__ == '__main__':
             print('Alpha', 'Lambda', 'Runtime',
                   'Training Error', 'Validation Error', 'Testing Error',
                   'Training Accuracy', 'Validation Accuracy', 'Testing Accuracy', sep='\t')
-            for (alpha, lambd), mseList, validList, testList, accuList, t in zip(
-                    alphaLambdList, mse, validMse, testMse, accu, runtime):
+            for (alpha, lambd), mseList, validList, testList, accuList, validAccuList, testAccuList, t in zip(
+                    alphaLambdList, mse, validMse, testMse, accu, validAccu, testAccu, runtime):
                 print(alpha, lambd, t,
                       mseList[-1], validList[-1], testList[-1],
-                      *accuList,
+                      accuList[-1], validAccuList[-1], testAccuList[-1],
                       sep='\t')
 
     # %% Q1
