@@ -96,7 +96,7 @@ def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rat
 
 if __name__ == '__main__':
     linear_regression_epochs = 5000
-    run13 = False
+    run13 = True
     run14 = True
     save_linear_regression = False
     plot_linear_regression = True
@@ -110,22 +110,26 @@ if __name__ == '__main__':
     testDataVec = testData.reshape([testData.shape[0], testData.shape[1]*testData.shape[2]]).T
     
     if linear_regression_epochs:
-        #%% Part 1.3
-        if run13:
+        def train(alphaLambdList, figfilename=None):
             mse = []
             validMse = []
             testMse = []
             weight = []
             bias = []
-            alphaList = [0.005, 0.001, 0.0001]
-            for alpha in alphaList:
-                print('Alpha =', alpha)
+            accu = []
+            
+            def accuracy(x, y):
+                y = y.T
+                return np.count_nonzero((W.T.dot(x) + b > 0.5) == y) * 1.0 / y.size
+                
+            for alpha, lambd in alphaLambdList:
+                print('Alpha =', alpha, 'Lambda =', lambd)
                 
                 W = np.zeros([trainDataVec.shape[0], 1])
                 b = np.array([[0]])
                 W, b, mseList, validMseList, testMseList = grad_descent(
                         W, b, trainDataVec, trainTarget.T, alpha, 
-                        linear_regression_epochs, 0, 1e-6,
+                        linear_regression_epochs, lambd, 1e-6,
                         validDataVec, validTarget.T, testDataVec, testTarget.T)
                 
                 mse.append(mseList)
@@ -135,6 +139,12 @@ if __name__ == '__main__':
                 weight.append(W)
                 bias.append(b)
                 
+                accu.append((
+                        accuracy(trainDataVec, trainTarget), 
+                        accuracy(validDataVec, validTarget), 
+                        accuracy(testDataVec, testTarget), 	
+                        ))
+                
             mse = np.array(mse)
             validMse = np.array(validMse)
             testMse = np.array(testMse)
@@ -142,15 +152,16 @@ if __name__ == '__main__':
             weight = np.array(weight)
             bias = np.array(bias)
             
-            if save_linear_regression:
-                np.savez('linear_regression_results13.npz', mse=mse, weight=weight, bias=bias)
+            accu = np.array(accu)
+            
+            if save_linear_regression and figfilename is not None:
+                np.savez(figfilename + '.npz', mse=mse, weight=weight, bias=bias)
             
             if plot_linear_regression:
-                #%%
                 fig, axs = plt.subplots(1, 3, figsize=(12, 4), sharey=True)
                 for i, (err, title) in enumerate(zip(
                         (mse, validMse, testMse),
-                        ('1.3: Training Loss', '1.3: Validation Loss', '1.3: Testing Loss'),
+                        ('Training Loss', 'Validation Loss', 'Testing Loss'),
                         )):
                     axs[i].plot(err.T)
                     axs[i].set_title(title)
@@ -158,67 +169,28 @@ if __name__ == '__main__':
                     axs[i].set_xlabel('Epoches')
                     axs[i].set_ylabel('Mean Square Error')
                 
-                axs[i].legend([r'$\alpha=%g$' % i for i in alphaList])
-                plt.savefig('fig13.png', dpi=150)
+                axs[i].legend([r'$\alpha=%g,\lambda=%g$' % (alpha, lambd) 
+                                for alpha, lambd in alphaLambdList])
+                if figfilename:
+                    plt.savefig(figfilename, dpi=150)
                 
-                print('Alpha\tTraining Error\tValidation Error\tTesting Error')
-                for alpha, mseList, validList, testList in zip(alphaList, mse, validMse, testMse):
-                    print(alpha, '\t', mseList[-1], '\t', validList[-1], '\t', testList[-1])
-                
+                print('Alpha\tLambda\tTraining Error\tValidation Error\tTesting Error\tTraining Accuracy\tValidation Accuracy\tTesting Accuracy')
+                for (alpha, lambd), mseList, validList, testList, accuList in zip(
+                        alphaLambdList, mse, validMse, testMse, accu):
+                    print(alpha, lambd, mseList[-1], validList[-1], testList[-1], 
+                          *accuList,
+                          sep='\t')
+        
+        
+        
+        #%% Part 1.3
+        if run13:
+            train([(0.005, 0), (0.001, 0), (0.0001, 0)], figfilename='fig13.png')
+            
         #%% Part 1.4
         if run14:
-            mse = []
-            validMse = []
-            testMse = []
-            weight = []
-            bias = []
-            alpha = 0.005
-            lambdList = (0.001, 0.1, 0.5)
-            for lambd in lambdList:
-                print('Lambda =', lambd)
-                
-                W = np.zeros([trainDataVec.shape[0], 1])
-                b = np.array([[0]])
-                W, b, mseList, validMseList, testMseList = grad_descent(
-                            W, b, trainDataVec, trainTarget.T, alpha, 
-                            linear_regression_epochs, lambd, 1e-6,
-                            validDataVec, validTarget.T, testDataVec, testTarget.T)
-                
-                mse.append(mseList)
-                validMse.append(validMseList)
-                testMse.append(testMseList)
-                weight.append(W)
-                bias.append(b)
-                
-            mse = np.array(mse)
-            validMse = np.array(validMse)
-            testMse = np.array(testMse)
-            weight = np.array(weight)
-            bias = np.array(bias)
+            train([(0.005, 0.001), (0.005, 0.1), (0.005, 0.5)], figfilename='fig14.png')
             
-            if save_linear_regression:
-                np.savez('linear_regression_results14.npz', mse=mse, weight=weight, bias=bias)
-                
-            if plot_linear_regression:
-                #%%
-                fig, axs = plt.subplots(1, 3, figsize=(12, 4), sharey=True)
-                for i, (err, title) in enumerate(zip(
-                        (mse, validMse, testMse),
-                        ('1.4: Training Loss', '1.4: Validation Loss', '1.4: Testing Loss'),
-                        )):
-                    axs[i].plot(err.T)
-                    axs[i].set_title(title)
-                    axs[i].grid()
-                    axs[i].set_xlabel('Epoches')
-                    axs[i].set_ylabel('Mean Square Error')
-                
-                axs[i].legend([r'$\lambda=%g$' % i for i in lambdList])
-                plt.savefig('fig14.png', dpi=150)
-                
-                print('Lambda\tTraining Error\tValidation Error\tTesting Error')
-                for lambd, mseList, validList, testList in zip(lambdList, mse, validMse, testMse):
-                    print(lambd, '\t', mseList[-1], '\t', validList[-1], '\t', testList[-1])
-                
         #%% 1.5 Normal equation
         X = trainDataVec.T
         X = np.hstack([np.ones([X.shape[0], 1]), X])
