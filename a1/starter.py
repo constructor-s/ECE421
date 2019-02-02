@@ -2,6 +2,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+import time
+
 def loadData():
     with np.load('notMNIST.npz') as data :
         Data, Target = data ['images'], data['labels']
@@ -117,6 +119,7 @@ if __name__ == '__main__':
             weight = []
             bias = []
             accu = []
+            runtime = []
             
             def accuracy(x, y):
                 y = y.T
@@ -127,10 +130,12 @@ if __name__ == '__main__':
                 
                 W = np.zeros([trainDataVec.shape[0], 1])
                 b = np.array([[0]])
+                tic = time.clock()
                 W, b, mseList, validMseList, testMseList = grad_descent(
                         W, b, trainDataVec, trainTarget.T, alpha, 
                         linear_regression_epochs, lambd, 1e-6,
                         validDataVec, validTarget.T, testDataVec, testTarget.T)
+                runtime.append(time.clock() - tic)
                 
                 mse.append(mseList)
                 validMse.append(validMseList)
@@ -174,10 +179,10 @@ if __name__ == '__main__':
                 if figfilename:
                     plt.savefig(figfilename, dpi=150)
                 
-                print('Alpha\tLambda\tTraining Error\tValidation Error\tTesting Error\tTraining Accuracy\tValidation Accuracy\tTesting Accuracy')
-                for (alpha, lambd), mseList, validList, testList, accuList in zip(
-                        alphaLambdList, mse, validMse, testMse, accu):
-                    print(alpha, lambd, mseList[-1], validList[-1], testList[-1], 
+                print('Alpha\tLambda\tRuntime\tTraining Error\tValidation Error\tTesting Error\tTraining Accuracy\tValidation Accuracy\tTesting Accuracy')
+                for (alpha, lambd), mseList, validList, testList, accuList, t in zip(
+                        alphaLambdList, mse, validMse, testMse, accu, runtime):
+                    print(alpha, lambd, t, mseList[-1], validList[-1], testList[-1], 
                           *accuList,
                           sep='\t')
         
@@ -192,10 +197,12 @@ if __name__ == '__main__':
             train([(0.005, 0.001), (0.005, 0.1), (0.005, 0.5)], figfilename='fig14.png')
             
         #%% 1.5 Normal equation
+        print('1.5 Normal equation')
         X = trainDataVec.T
         X = np.hstack([np.ones([X.shape[0], 1]), X])
+        tic = time.clock()
         W = np.linalg.pinv(X).dot(trainTarget)
-        print('1.5 Normal equation')
+        print('Runtime', time.clock() - tic)
         print('Training Accuracy\tValidation Accuracy\tTesting Accuracy')
         
         def accuracy(x, y):
