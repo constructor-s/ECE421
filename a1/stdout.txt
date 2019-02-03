@@ -1,24 +1,4 @@
-Alpha = 0.005 Lambda = 0
-Iteration 4995/5000
-Alpha = 0.001 Lambda = 0
-Iteration 4995/5000
-Alpha = 0.0001 Lambda = 0
-Iteration 4995/5000
-Alpha   Lambda  Runtime Training Error  Validation Error        Testing Error   Training Accuracy       Validation Accuracy     Testing Accuracy
-0.005   0       30.25060170859797       0.013658559538320486    0.015562282970023898    0.017410534334164722    0.9788571428571429      0.98    0.9724137931034482
-0.001   0       27.951365918968804      0.017216724676250447    0.019289406339396395    0.019584629484876017    0.9631428571428572      0.97    0.9586206896551724
-0.0001  0       27.79217101825634       0.023056365992701597    0.02631992090786202     0.023642373110229594    0.9474285714285714      0.93    0.9517241379310345
+pydev debugger: process 19984 is connecting
+
 Alpha = 0.005 Lambda = 0.001
-Iteration 4995/5000
-Alpha = 0.005 Lambda = 0.1
-Iteration 4995/5000
-Alpha = 0.005 Lambda = 0.5
-Iteration 4995/5000
-Alpha   Lambda  Runtime Training Error  Validation Error        Testing Error   Training Accuracy       Validation Accuracy     Testing Accuracy
-0.005   0.001   27.753325335565023      0.013721638735222795    0.015618720565299829    0.0174456898209936      0.9788571428571429      0.98    0.9724137931034482
-0.005   0.1     26.50041192903882       0.0167203503500896      0.0183890813452195      0.018849132498368396    0.9754285714285714      0.97    0.9655172413793104
-0.005   0.5     26.091429703810718      0.02039280912288389     0.022474558907007745    0.021286942748909035    0.9714285714285714      0.97    0.9655172413793104
-1.5 Normal equation
-Runtime 0.8872139342711307
-Training Accuracy       Validation Accuracy     Testing Accuracy
-0.994    0.960   0.945
+Backend Qt5Agg is interactive backend. Turning interactive mode on.
