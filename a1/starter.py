@@ -1,4 +1,4 @@
-# import tensorflow as tf
+import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -159,9 +159,54 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
     else:
         return W, b, mseList, validMseList, testMseList, accuracyList, validAccuracyList, testAccuracyList
 
-def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rate=None):
+def buildGraph(lossType=None, learning_rate=0.001, d=784):
     # Your implementation here
-    pass
+    if lossType is None or lossType == 'mse':
+        pass
+    elif lossType == 'ce':
+        pass
+    else:
+        raise Exception('Invalid lossType = %s' % lossType)
+    
+    tf.set_random_seed(421)
+    
+    W = tf.Variable(tf.zeros(
+        (d, 1)
+    ), trainable=True, name='Weight')
+    
+    b = tf.Variable(tf.zeros(
+        (1, 1)
+    ), trainable=True, name='bias')
+    
+    x = tf.placeholder(
+        dtype=tf.float32,
+        shape=(d, None),
+        name='trainData'
+    )
+    
+    y = tf.placeholder(
+        dtype=tf.float32,
+        shape=(1, None),
+        name='trainLabel'
+    )
+    
+    lambd = tf.placeholder(
+        dtype=tf.float32,
+        shape=(1, 1),
+        name='lambda'
+    )
+    
+    if lossType is None or lossType == 'mse':
+        yhat = tf.add(tf.matmul(tf.transpose(W), x), b)
+        loss = tf.losses.mean_squared_error(y, yhat)
+    else:
+        yhat = tf.sigmoid(tf.add(tf.matmul(tf.transpose(W), x), b))
+        loss = tf.losses.log_loss(y, yhat)
+        
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(loss)
+    
+    return optimizer, x, y, lambd, loss, W, b, yhat
+
 
 
 if __name__ == '__main__':
@@ -172,9 +217,9 @@ if __name__ == '__main__':
     save_linear_regression = False
     plot_linear_regression = True
 
-    logistic_regression_epochs = 5000
+    logistic_regression_epochs = 0
     
-    run_sgd = True    
+    run_tf = True
     
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
     
@@ -302,3 +347,38 @@ if __name__ == '__main__':
     if logistic_regression_epochs:
         train([(0.005, 0.001), (0.005, 0.1), (0.005, 0.5)], figfilename='fig23.png',
               epochs=logistic_regression_epochs, lossType='ce')
+        
+        
+    # %% Q3
+    if run_tf:
+        optimizer, x, y, lambd, loss, W, b, yhat = buildGraph()
+        feed = {x: trainDataVec,
+                y: trainTarget.T,
+                lambd: ((0,),)}
+        
+        init = tf.global_variables_initializer()
+        with tf.Session() as sess:
+            sess.run(init)
+            W_ = sess.run(W)
+            b_ = sess.run(b)
+            print(np.count_nonzero((W_.T.dot(trainDataVec) + b_ > 0.5) == trainTarget.T) / trainTarget.size)
+            
+            print(sess.run(loss, feed_dict=feed))
+            sess.run(optimizer, feed_dict=feed)
+            print(sess.run(loss, feed_dict=feed))
+            
+#            print(sess.run(x, feed_dict=feed))
+#            print(sess.run(y, feed_dict=feed))
+#            print(sess.run(lambd, feed_dict=feed))
+#            print(sess.run(loss, feed_dict=feed))
+#            print(sess.run(W))
+#            print(sess.run(b))
+            
+#            print(sess.run((yhat>0.5) == y, feed_dict=feed))
+            W_ = sess.run(W)
+            b_ = sess.run(b)
+            print(np.count_nonzero((W_.T.dot(trainDataVec) + b_ > 0.5) == trainTarget.T) / trainTarget.size)
+            
+
+
+
