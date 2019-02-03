@@ -159,8 +159,9 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
     else:
         return W, b, mseList, validMseList, testMseList, accuracyList, validAccuracyList, testAccuracyList
 
-def buildGraph(lossType=None, learning_rate=0.001, d=784):
-    # Your implementation here
+def buildGraph(beta1=None, beta2=None, epsilon=None, 
+               lossType=None, learning_rate=0.001, d=784, stddev=0.5):
+    # Validate input
     if lossType is None or lossType == 'mse':
         pass
     elif lossType == 'ce':
@@ -170,26 +171,30 @@ def buildGraph(lossType=None, learning_rate=0.001, d=784):
     
     tf.set_random_seed(421)
     
-    W = tf.Variable(tf.zeros(
-        (d, 1)
+    # Model parameters (Variables)
+    W = tf.Variable(tf.truncated_normal(
+        (d, 1), stddev=stddev, seed=421
     ), trainable=True, name='Weight')
-    
+#    W = tf.Variable(tf.zeros(
+#        (d, 1)
+#    ), trainable=True, name='Weight')
     b = tf.Variable(tf.zeros(
         (1, 1)
     ), trainable=True, name='bias')
     
+    # Data inputs (Placeholders)
     x = tf.placeholder(
         dtype=tf.float32,
         shape=(d, None),
-        name='trainData'
+        name='data'
     )
-    
     y = tf.placeholder(
         dtype=tf.float32,
         shape=(1, None),
-        name='trainLabel'
+        name='label'
     )
     
+    # Hyperparameter (Placeholder)
     lambd = tf.placeholder(
         dtype=tf.float32,
         shape=(1, 1),
@@ -205,13 +210,13 @@ def buildGraph(lossType=None, learning_rate=0.001, d=784):
         
     optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(loss)
     
-    return optimizer, x, y, lambd, loss, W, b, yhat
+    return optimizer, W, b, x, y, lambd, yhat, loss
 
 
 
 if __name__ == '__main__':
     # %%
-    linear_regression_epochs = 0
+    linear_regression_epochs = 5000
     run13 = True
     run14 = True
     save_linear_regression = False
@@ -219,7 +224,7 @@ if __name__ == '__main__':
 
     logistic_regression_epochs = 0
     
-    run_tf = True
+    tf_epochs = 0
     
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
     
@@ -350,35 +355,55 @@ if __name__ == '__main__':
         
         
     # %% Q3
-    if run_tf:
-        optimizer, x, y, lambd, loss, W, b, yhat = buildGraph()
-        feed = {x: trainDataVec,
-                y: trainTarget.T,
-                lambd: ((0,),)}
+    if tf_epochs:
+        optimizer, W, b, x, y, lambd, yhat, loss = buildGraph(learning_rate=0.005, stddev=0.05)
+        
+        lambd_val = 0
+        
+        train_dict = {x: trainDataVec,
+                      y: trainTarget.T,
+                      lambd: ((lambd_val,),)}
+        valid_dict = {x: validDataVec,
+                      y: validTarget.T,
+                      lambd: ((lambd_val,),)}
+        test_dict = {x: testDataVec,
+                     y: testTarget.T,
+                     lambd: ((lambd_val,),)}
+        
+        results = []
         
         init = tf.global_variables_initializer()
         with tf.Session() as sess:
             sess.run(init)
-            W_ = sess.run(W)
-            b_ = sess.run(b)
-            print(np.count_nonzero((W_.T.dot(trainDataVec) + b_ > 0.5) == trainTarget.T) / trainTarget.size)
             
-            print(sess.run(loss, feed_dict=feed))
-            sess.run(optimizer, feed_dict=feed)
-            print(sess.run(loss, feed_dict=feed))
-            
-#            print(sess.run(x, feed_dict=feed))
-#            print(sess.run(y, feed_dict=feed))
-#            print(sess.run(lambd, feed_dict=feed))
 #            print(sess.run(loss, feed_dict=feed))
-#            print(sess.run(W))
-#            print(sess.run(b))
+#            print(np.count_nonzero((W_.T.dot(trainDataVec) + b_ > 0.5) == trainTarget.T) / trainTarget.size)
             
-#            print(sess.run((yhat>0.5) == y, feed_dict=feed))
-            W_ = sess.run(W)
-            b_ = sess.run(b)
-            print(np.count_nonzero((W_.T.dot(trainDataVec) + b_ > 0.5) == trainTarget.T) / trainTarget.size)
-            
+            print('i', 'train_loss', 'train_acc', sep='\t')
+            for i in range(tf_epochs):
+                train_loss, train_yhat, _ = sess.run([
+                        loss, yhat, optimizer
+                        ], feed_dict=train_dict)
+                train_acc = np.count_nonzero((train_yhat > 0.5) == trainTarget.T) / trainTarget.size
+                
+                print('\r', i, train_loss, train_acc, sep='\t', end='       \r')
+                
+                
+                
+#                print(sess.run(loss, feed_dict=feed))
+#                
+#    #            print(sess.run(x, feed_dict=feed))
+#    #            print(sess.run(y, feed_dict=feed))
+#    #            print(sess.run(lambd, feed_dict=feed))
+#    #            print(sess.run(loss, feed_dict=feed))
+#    #            print(sess.run(W))
+#    #            print(sess.run(b))
+#                
+#    #            print(sess.run((yhat>0.5) == y, feed_dict=feed))
+#                W_ = sess.run(W)
+#                b_ = sess.run(b)
+#                print(np.count_nonzero((W_.T.dot(trainDataVec) + b_ > 0.5) == trainTarget.T) / trainTarget.size)
+                
 
 
 
