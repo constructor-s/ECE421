@@ -216,7 +216,7 @@ def buildGraph(beta1=None, beta2=None, epsilon=None,
 
 if __name__ == '__main__':
     # %%
-    linear_regression_epochs = 5000
+    linear_regression_epochs = 0
     run13 = True
     run14 = True
     save_linear_regression = False
@@ -224,7 +224,7 @@ if __name__ == '__main__':
 
     logistic_regression_epochs = 0
     
-    tf_epochs = 0
+    tf_epochs = 100
     
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
     
@@ -381,10 +381,24 @@ if __name__ == '__main__':
             
             print('i', 'train_loss', 'train_acc', sep='\t')
             for i in range(tf_epochs):
+                valid_loss, valid_yhat = sess.run([
+                        loss, yhat
+                        ], feed_dict=valid_dict)
+                valid_acc = np.count_nonzero((valid_yhat > 0.5) == validTarget.T) / validTarget.size
+                
+                test_loss, test_yhat = sess.run([
+                        loss, yhat
+                        ], feed_dict=test_dict)
+                test_acc = np.count_nonzero((test_yhat > 0.5) == testTarget.T) / testTarget.size
+                
                 train_loss, train_yhat, _ = sess.run([
                         loss, yhat, optimizer
                         ], feed_dict=train_dict)
                 train_acc = np.count_nonzero((train_yhat > 0.5) == trainTarget.T) / trainTarget.size
+                
+                results.append(
+                        (train_loss, valid_loss, test_loss, train_acc, valid_acc, train_acc)
+                        )
                 
                 print('\r', i, train_loss, train_acc, sep='\t', end='       \r')
                 
