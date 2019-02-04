@@ -159,7 +159,7 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
     else:
         return W, b, mseList, validMseList, testMseList, accuracyList, validAccuracyList, testAccuracyList
 
-def buildGraph(beta1=None, beta2=None, epsilon=None, 
+def buildGraph(beta1=0.9, beta2=0.999, epsilon=1e-08, 
                lossType=None, learning_rate=0.001, d=784, stddev=0.5):
     # Validate input
     if lossType is None or lossType == 'mse':
@@ -208,7 +208,12 @@ def buildGraph(beta1=None, beta2=None, epsilon=None,
         yhat = tf.sigmoid(tf.add(tf.matmul(tf.transpose(W), x), b))
         loss = tf.losses.log_loss(y, yhat)
         
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(loss)
+#    optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(loss)
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate,
+                                        beta1=beta1,
+                                        beta2=beta2,
+                                        epsilon=epsilon,
+                                    ).minimize(loss)
     
     return optimizer, W, b, x, y, lambd, yhat, loss
 
@@ -216,15 +221,18 @@ def buildGraph(beta1=None, beta2=None, epsilon=None,
 
 if __name__ == '__main__':
     # %%
+    # Q1
     linear_regression_epochs = 0
     run13 = True
     run14 = True
     save_linear_regression = False
     plot_linear_regression = True
-
+    
+    # Q2
     logistic_regression_epochs = 0
     
-    tf_epochs = 100
+    # Q3
+    tf_epochs = 700
     
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
     
@@ -309,7 +317,7 @@ if __name__ == '__main__':
                             for alpha, lambd in alphaLambdList])
             if figfilename:
                 plt.savefig(figfilename, dpi=150)
-
+            
             print('Alpha', 'Lambda', 'Runtime',
                   'Training Loss', 'Validation Loss', 'Testing Loss',
                   'Training Accuracy', 'Validation Accuracy', 'Testing Accuracy', sep='\t')
@@ -356,68 +364,95 @@ if __name__ == '__main__':
         
     # %% Q3
     if tf_epochs:
-        optimizer, W, b, x, y, lambd, yhat, loss = buildGraph(learning_rate=0.005, stddev=0.05)
-        
-        lambd_val = 0
-        
-        train_dict = {x: trainDataVec,
-                      y: trainTarget.T,
-                      lambd: ((lambd_val,),)}
-        valid_dict = {x: validDataVec,
-                      y: validTarget.T,
-                      lambd: ((lambd_val,),)}
-        test_dict = {x: testDataVec,
-                     y: testTarget.T,
-                     lambd: ((lambd_val,),)}
-        
-        results = []
-        
-        init = tf.global_variables_initializer()
-        with tf.Session() as sess:
-            sess.run(init)
+        def tf_train(beta1=0.9, beta2=0.999, epsilon=1e-08, 
+               lossType=None, learning_rate=0.001, stddev=0.5, 
+               batch_size=500, lambd_val=0, tf_epochs=tf_epochs):
             
-#            print(sess.run(loss, feed_dict=feed))
-#            print(np.count_nonzero((W_.T.dot(trainDataVec) + b_ > 0.5) == trainTarget.T) / trainTarget.size)
+            print('beta1', 'beta2', 'epsilon', 'lossType', 'learning_rate', 'stddev', 'batch_size', 'lambd_val', 'tf_epochs', sep='\t')
+            print(beta1, beta2, epsilon, lossType, learning_rate, stddev, batch_size, lambd_val, tf_epochs, sep='\t')
             
-            print('i', 'train_loss', 'train_acc', sep='\t')
-            for i in range(tf_epochs):
-                valid_loss, valid_yhat = sess.run([
-                        loss, yhat
-                        ], feed_dict=valid_dict)
-                valid_acc = np.count_nonzero((valid_yhat > 0.5) == validTarget.T) / validTarget.size
+            optimizer, W, b, x, y, lambd, yhat, loss = buildGraph(beta1=beta1, beta2=beta2, epsilon=epsilon, 
+               lossType=lossType, learning_rate=learning_rate, stddev=stddev)
+            
+            train_dict = {x: trainDataVec,
+                          y: trainTarget.T,
+                          lambd: ((lambd_val,),)}
+            valid_dict = {x: validDataVec,
+                          y: validTarget.T,
+                          lambd: ((lambd_val,),)}
+            test_dict = {x: testDataVec,
+                         y: testTarget.T,
+                         lambd: ((lambd_val,),)}
+            
+            results = []
+            
+            rand = np.random.RandomState(421)
+            init = tf.global_variables_initializer()
+            with tf.Session() as sess:
+                sess.run(init)
                 
-                test_loss, test_yhat = sess.run([
-                        loss, yhat
-                        ], feed_dict=test_dict)
-                test_acc = np.count_nonzero((test_yhat > 0.5) == testTarget.T) / testTarget.size
-                
-                train_loss, train_yhat, _ = sess.run([
-                        loss, yhat, optimizer
-                        ], feed_dict=train_dict)
-                train_acc = np.count_nonzero((train_yhat > 0.5) == trainTarget.T) / trainTarget.size
-                
-                results.append(
-                        (train_loss, valid_loss, test_loss, train_acc, valid_acc, train_acc)
-                        )
-                
-                print('\r', i, train_loss, train_acc, sep='\t', end='       \r')
-                
-                
-                
-#                print(sess.run(loss, feed_dict=feed))
-#                
-#    #            print(sess.run(x, feed_dict=feed))
-#    #            print(sess.run(y, feed_dict=feed))
-#    #            print(sess.run(lambd, feed_dict=feed))
-#    #            print(sess.run(loss, feed_dict=feed))
-#    #            print(sess.run(W))
-#    #            print(sess.run(b))
-#                
-#    #            print(sess.run((yhat>0.5) == y, feed_dict=feed))
-#                W_ = sess.run(W)
-#                b_ = sess.run(b)
-#                print(np.count_nonzero((W_.T.dot(trainDataVec) + b_ > 0.5) == trainTarget.T) / trainTarget.size)
-                
-
+                print('iter', 'train_loss', 'train_acc', sep='\t')
+                for i in range(tf_epochs):
+                    valid_loss, valid_yhat = sess.run([
+                            loss, yhat
+                            ], feed_dict=valid_dict)
+                    valid_acc = np.count_nonzero((valid_yhat > 0.5) == validTarget.T) / validTarget.size
+                    
+                    test_loss, test_yhat = sess.run([
+                            loss, yhat
+                            ], feed_dict=test_dict)
+                    test_acc = np.count_nonzero((test_yhat > 0.5) == testTarget.T) / testTarget.size
+                    
+                    train_loss, train_yhat = sess.run([
+                            loss, yhat
+                            ], feed_dict=train_dict)
+                    train_acc = np.count_nonzero((train_yhat > 0.5) == trainTarget.T) / trainTarget.size
+                    
+                    results.append(
+                            (train_loss, valid_loss, test_loss, train_acc, valid_acc, test_acc)
+                            )
+                    
+                    if i % 10 == 0 or i == tf_epochs-1:
+                        print('\r', i, '%.3f' % train_loss, '%.3f' % train_acc, sep='\t', end='    \r')
+                    
+                    # Minibatch
+                    perm = rand.permutation(trainDataVec.shape[1])
+                    for start in range(0, trainDataVec.shape[1], batch_size):
+                        chunk = (slice(None, None), perm[start:start+batch_size])
+                        sess.run(optimizer, feed_dict={x: trainDataVec[chunk],
+                                                       y: trainTarget.T[chunk],
+                                                       lambd: ((lambd_val,),)})
+                    
+            print()                    
+            return np.array(results)
+        
+        res = []
+        lossType = 'mse'
+        bsizes = (100, 500, 700, 1750)
+        fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharey='row')
+        for bsize in bsizes:
+            tic = time.clock()                
+            curves = tf_train(lossType=lossType, batch_size=bsize)
+            print('Runtime:', time.clock() - tic)
+            
+            for i, (line, ax, title) in enumerate(zip(curves.T, axs.ravel(), 
+                                       ('Training Loss', 'Validation Loss', 'Testing Loss',
+                                        'Training Accuracy', 'Validation Accuracy', 'Testing Accuracy'))):
+                ax.plot(line)
+                ax.set_title(title)
+                ax.set_xlabel('Epoches')
+                if i <= 2:
+                    if lossType is None or lossType == 'mse':
+                        ax.set_ylabel('Mean Square Error')
+                    elif lossType == 'ce':
+                        ax.set_ylabel('Cross Entropy Loss')
+                    else:
+                        raise Exception('Invalid lossType = %s' % lossType)
+                else:
+                    ax.set_ylabel('Accuracy')
+                ax.grid(True)
+            
+        axs[0, 0].legend(['B=%d' % i for i in bsizes])
+        fig.savefig('fig33.png', dpi=150)
 
 
