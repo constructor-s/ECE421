@@ -1,49 +1,105 @@
 beta1	beta2	epsilon	lossType	learning_rate	stddev	batch_size	lambd_val	tf_epochs
 0.9	0.999	1e-08	mse	0.001	0.5	500	0	700
-2019-02-04 22:15:19.224265: I tensorflow/core/platform/cpu_feature_guard.cc:137] Your CPU supports instructions that this TensorFlow binary was not compiled to use: SSE4.1 SSE4.2
-2019-02-04 22:15:19.304272: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:895] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-2019-02-04 22:15:19.304558: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1105] Found device 0 with properties: 
+2019-02-04 23:18:12.543996: I tensorflow/core/platform/cpu_feature_guard.cc:137] Your CPU supports instructions that this TensorFlow binary was not compiled to use: SSE4.1 SSE4.2
+2019-02-04 23:18:12.614856: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:895] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2019-02-04 23:18:12.615143: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1105] Found device 0 with properties: 
 name: GeForce GTX 1070 major: 6 minor: 1 memoryClockRate(GHz): 1.7845
 pciBusID: 0000:01:00.0
-totalMemory: 7.93GiB freeMemory: 7.37GiB
-2019-02-04 22:15:19.304574: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1195] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX 1070, pci bus id: 0000:01:00.0, compute capability: 6.1)
-iter	train_loss	train_acc
-699	0.1134	0.914    
-Runtime: 28.184262
+totalMemory: 7.93GiB freeMemory: 7.42GiB
+2019-02-04 23:18:12.615159: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1195] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX 1070, pci bus id: 0000:01:00.0, compute capability: 6.1)
+iter	train_loss	valid_loss	test_loss	train_acc	valid_acc	test_acc
+0	22.034	18.266	19.645	0.321	0.360	0.317
+100	1.363	1.237	1.230	0.662	0.620	0.690
+200	0.661	0.645	0.657	0.733	0.660	0.766
+300	0.401	0.431	0.434	0.781	0.700	0.800
+400	0.270	0.328	0.318	0.832	0.790	0.828
+500	0.193	0.266	0.245	0.867	0.820	0.848
+600	0.145	0.228	0.194	0.889	0.830	0.862
+699	0.113	0.203	0.160	0.914	0.840	0.903
+
+Runtime: 29.904944999999998
 beta1	beta2	epsilon	lossType	learning_rate	stddev	batch_size	lambd_val	tf_epochs
 0.95	0.999	1e-08	mse	0.001	0.5	500	0	700
-2019-02-04 22:15:43.951177: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1195] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX 1070, pci bus id: 0000:01:00.0, compute capability: 6.1)
-iter	train_loss	train_acc
-699	0.1144	0.913    
-Runtime: 27.804399999999998
+2019-02-04 23:18:37.490231: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1195] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX 1070, pci bus id: 0000:01:00.0, compute capability: 6.1)
+iter	train_loss	valid_loss	test_loss	train_acc	valid_acc	test_acc
+0	22.034	18.266	19.645	0.321	0.360	0.317
+100	1.366	1.234	1.226	0.662	0.630	0.676
+200	0.660	0.643	0.661	0.734	0.680	0.766
+300	0.398	0.427	0.432	0.790	0.700	0.800
+400	0.265	0.326	0.314	0.834	0.790	0.834
+500	0.189	0.266	0.241	0.870	0.830	0.855
+600	0.142	0.225	0.191	0.897	0.850	0.869
+699	0.114	0.200	0.157	0.913	0.850	0.917
+
+Runtime: 29.008334
 beta1	beta2	epsilon	lossType	learning_rate	stddev	batch_size	lambd_val	tf_epochs
 0.99	0.999	1e-08	mse	0.001	0.5	500	0	700
-2019-02-04 22:16:08.254187: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1195] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX 1070, pci bus id: 0000:01:00.0, compute capability: 6.1)
-iter	train_loss	train_acc
-699	0.1114	0.919    
-Runtime: 27.815648000000003
+2019-02-04 23:19:01.967375: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1195] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX 1070, pci bus id: 0000:01:00.0, compute capability: 6.1)
+iter	train_loss	valid_loss	test_loss	train_acc	valid_acc	test_acc
+0	22.034	18.266	19.645	0.321	0.360	0.317
+100	1.470	1.282	1.314	0.649	0.600	0.710
+200	0.720	0.685	0.720	0.724	0.650	0.745
+300	0.439	0.460	0.470	0.775	0.690	0.800
+400	0.289	0.340	0.334	0.830	0.760	0.821
+500	0.201	0.273	0.252	0.858	0.840	0.848
+600	0.147	0.230	0.196	0.899	0.840	0.862
+699	0.111	0.204	0.156	0.919	0.850	0.897
+
+Runtime: 29.096645999999993
 beta1	beta2	epsilon	lossType	learning_rate	stddev	batch_size	lambd_val	tf_epochs
 0.9	0.99	1e-08	mse	0.001	0.5	500	0	700
-2019-02-04 22:16:32.523762: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1195] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX 1070, pci bus id: 0000:01:00.0, compute capability: 6.1)
-iter	train_loss	train_acc
-699	0.0724	0.948    
-Runtime: 27.758584
+2019-02-04 23:19:26.605859: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1195] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX 1070, pci bus id: 0000:01:00.0, compute capability: 6.1)
+iter	train_loss	valid_loss	test_loss	train_acc	valid_acc	test_acc
+0	22.034	18.266	19.645	0.321	0.360	0.317
+100	0.951	0.876	0.923	0.688	0.640	0.724
+200	0.384	0.414	0.438	0.796	0.730	0.779
+300	0.219	0.284	0.282	0.846	0.810	0.821
+400	0.152	0.233	0.212	0.889	0.850	0.848
+500	0.113	0.200	0.165	0.917	0.840	0.890
+600	0.088	0.177	0.132	0.931	0.870	0.910
+699	0.072	0.161	0.113	0.948	0.880	0.910
+
+Runtime: 28.983295999999996
 beta1	beta2	epsilon	lossType	learning_rate	stddev	batch_size	lambd_val	tf_epochs
 0.9	0.9999	1e-08	mse	0.001	0.5	500	0	700
-2019-02-04 22:16:57.770454: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1195] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX 1070, pci bus id: 0000:01:00.0, compute capability: 6.1)
-iter	train_loss	train_acc
-699	0.1764	0.874    
-Runtime: 28.084615
+2019-02-04 23:19:52.140740: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1195] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX 1070, pci bus id: 0000:01:00.0, compute capability: 6.1)
+iter	train_loss	valid_loss	test_loss	train_acc	valid_acc	test_acc
+0	22.034	18.266	19.645	0.321	0.360	0.317
+100	1.418	1.286	1.273	0.659	0.620	0.690
+200	0.723	0.700	0.710	0.725	0.670	0.752
+300	0.473	0.489	0.495	0.763	0.680	0.779
+400	0.341	0.384	0.379	0.805	0.710	0.807
+500	0.261	0.319	0.305	0.837	0.790	0.821
+600	0.209	0.281	0.256	0.859	0.810	0.855
+699	0.176	0.251	0.222	0.874	0.830	0.841
+
+Runtime: 28.984899
 beta1	beta2	epsilon	lossType	learning_rate	stddev	batch_size	lambd_val	tf_epochs
 0.9	0.999	1e-09	mse	0.001	0.5	500	0	700
-2019-02-04 22:17:22.297108: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1195] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX 1070, pci bus id: 0000:01:00.0, compute capability: 6.1)
-iter	train_loss	train_acc
-699	0.1134	0.914    
-Runtime: 27.821730000000002
+2019-02-04 23:20:16.612395: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1195] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX 1070, pci bus id: 0000:01:00.0, compute capability: 6.1)
+iter	train_loss	valid_loss	test_loss	train_acc	valid_acc	test_acc
+0	22.034	18.266	19.645	0.321	0.360	0.317
+100	1.363	1.237	1.230	0.662	0.620	0.690
+200	0.661	0.645	0.657	0.733	0.660	0.766
+300	0.401	0.431	0.434	0.781	0.700	0.800
+400	0.270	0.328	0.318	0.832	0.790	0.828
+500	0.193	0.266	0.245	0.867	0.820	0.848
+600	0.145	0.228	0.194	0.889	0.830	0.862
+699	0.113	0.203	0.160	0.914	0.840	0.903
+
+Runtime: 29.158154999999994
 beta1	beta2	epsilon	lossType	learning_rate	stddev	batch_size	lambd_val	tf_epochs
 0.9	0.999	0.0001	mse	0.001	0.5	500	0	700
-2019-02-04 22:17:47.456141: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1195] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX 1070, pci bus id: 0000:01:00.0, compute capability: 6.1)
-iter	train_loss	train_acc
-699	0.1134	0.914    
-Runtime: 27.908716999999996
+2019-02-04 23:20:42.243086: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1195] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX 1070, pci bus id: 0000:01:00.0, compute capability: 6.1)
+iter	train_loss	valid_loss	test_loss	train_acc	valid_acc	test_acc
+0	22.034	18.266	19.645	0.321	0.360	0.317
+100	1.364	1.238	1.231	0.662	0.620	0.690
+200	0.662	0.646	0.657	0.733	0.660	0.766
+300	0.401	0.431	0.434	0.780	0.700	0.800
+400	0.270	0.329	0.319	0.832	0.790	0.828
+500	0.193	0.266	0.245	0.867	0.820	0.848
+600	0.145	0.228	0.195	0.889	0.830	0.862
+699	0.113	0.203	0.161	0.914	0.840	0.903
+
+Runtime: 28.979176999999993
 

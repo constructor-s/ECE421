@@ -200,13 +200,17 @@ def buildGraph(beta1=0.9, beta2=0.999, epsilon=1e-08,
         shape=(1, 1),
         name='lambda'
     )
-    
+
+    regularizer = tf.contrib.layers.l2_regularizer(scale=lambd)
     if lossType is None or lossType == 'mse':
         yhat = tf.add(tf.matmul(tf.transpose(W), x), b)
         loss = tf.losses.mean_squared_error(y, yhat)
     else:
         yhat = tf.sigmoid(tf.add(tf.matmul(tf.transpose(W), x), b))
         loss = tf.losses.log_loss(y, yhat)
+
+    # Apply regularization
+    loss += regularizer(W)
         
 #    optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(loss)
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate,
@@ -393,7 +397,7 @@ if __name__ == '__main__':
             with tf.Session() as sess:
                 sess.run(init)
                 
-                print('iter', 'train_loss', 'train_acc', sep='\t')
+                print('iter', 'train_loss', 'valid_loss', 'test_loss', 'train_acc', 'valid_acc', 'test_acc', sep='\t')
                 for i in range(tf_epochs):
                     valid_loss, valid_yhat = sess.run([
                             loss, yhat
@@ -415,7 +419,9 @@ if __name__ == '__main__':
                             )
                     
                     if i % 100 == 0 or i == tf_epochs-1:
-                        print('\r%d' % i, '%.3f' % train_loss, '%.3f' % train_acc, sep='\t', end='    \r')
+                        print('%d' % i, '%.3f' % train_loss, '%.3f' % valid_loss, '%.3f' % test_loss,
+                                          '%.3f' % train_acc, '%.3f' % valid_acc, '%.3f' % test_acc,
+                                            sep='\t')
                     
                     # Minibatch
                     perm = rand.permutation(trainDataVec.shape[1])
