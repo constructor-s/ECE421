@@ -237,7 +237,8 @@ if __name__ == '__main__':
     
     # Q3
     tf_epochs = 700
-    run33 = False
+    tf_lossTypes = ('ce',)
+    run33 = True
     run34 = True
     
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
@@ -435,101 +436,101 @@ if __name__ == '__main__':
             return np.array(results)
 
         #%%
-        if run33:
-            res = []
-            lossType = 'mse'
-            bsizes = (100, 500, 700, 1750)
-            fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharey='row')
-            for bsize in bsizes:
-                tic = time.clock()
-                curves = tf_train(lossType=lossType, batch_size=bsize)
-                print('Runtime:', time.clock() - tic)
+        for lossType in tf_lossTypes:
+            if run33:
+                res = []
+                bsizes = (100, 500, 700, 1750)
+                fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharey='row')
+                for bsize in bsizes:
+                    tic = time.clock()
+                    curves = tf_train(lossType=lossType, batch_size=bsize)
+                    print('Runtime:', time.clock() - tic)
 
-                for i, (line, ax, title) in enumerate(zip(curves.T, axs.ravel(),
-                                           ('Training Loss', 'Validation Loss', 'Testing Loss',
-                                            'Training Accuracy', 'Validation Accuracy', 'Testing Accuracy'))):
-                    ax.plot(line)
-                    ax.set_title(title)
-                    ax.set_xlabel('Epoches')
-                    if i <= 2:
-                        if lossType is None or lossType == 'mse':
-                            ax.set_ylabel('Mean Square Error')
-                        elif lossType == 'ce':
-                            ax.set_ylabel('Cross Entropy Loss')
-                        else:
-                            raise Exception('Invalid lossType = %s' % lossType)
-                    else:
-                        ax.set_ylabel('Accuracy')
-                    ax.grid(True)
-
-            axs[0, 0].legend(['B=%d' % i for i in bsizes])
-            fig.savefig('fig33.png', dpi=150)
-
-        #%%
-        if run34:
-            parameters = ((0.9, 0.999, 1e-08,   'Default(0.9,0.999,1e-8)'),
-                          (0.95, 0.999, 1e-08,  r'$\beta_1=0.95$'),
-                          (0.99, 0.999, 1e-08,  r'$\beta_1=0.99$'),
-                          (0.9, 0.99, 1e-08,    r'$\beta_2=0.99$'),
-                          (0.9, 0.9999, 1e-08,  r'$\beta_2=0.9999$'),
-                          (0.9, 0.999, 1e-09,   r'$\epsilon=1e-9$'),
-                          (0.9, 0.999, 1e-04,   r'$\epsilon=1e-4$'),
-                          )
-
-            res = []
-            legendList = []
-            lossType = 'mse'
-            for j, (beta1, beta2, eps, name) in enumerate(parameters):
-                tic = time.clock()
-                curves = tf_train(lossType=lossType, batch_size=500, beta1=beta1, beta2=beta2, epsilon=eps)
-                print('Runtime:', time.clock() - tic)
-
-                if j in (0, 3, 5):
-                    if j == 0:
-                        baseline = curves
-                        fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharey='row')
-                    else:
-                        axs[0, 0].legend(legendList)
-                        fig.savefig('fig34%d.png' % j, dpi=150)
-                        fig.savefig('fig34%d.pdf' % j)
-
-                        fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharey='row')
-                        legendList = [parameters[0][-1]]
-                        for i, (line, ax, title) in enumerate(zip(baseline.T, axs.ravel(),
-                                                                  ('Training Loss', 'Validation Loss', 'Testing Loss',
-                                                                   'Training Accuracy', 'Validation Accuracy', 'Testing Accuracy'))):
-                            ax.plot(line)
-                            ax.set_title(title)
-                            ax.set_xlabel('Epoches')
-                            if i <= 2:
-                                if lossType is None or lossType == 'mse':
-                                    ax.set_ylabel('Mean Square Error')
-                                elif lossType == 'ce':
-                                    ax.set_ylabel('Cross Entropy Loss')
-                                else:
-                                    raise Exception('Invalid lossType = %s' % lossType)
+                    for i, (line, ax, title) in enumerate(zip(curves.T, axs.ravel(),
+                                               ('Training Loss', 'Validation Loss', 'Testing Loss',
+                                                'Training Accuracy', 'Validation Accuracy', 'Testing Accuracy'))):
+                        ax.plot(line)
+                        ax.set_title(title)
+                        ax.set_xlabel('Epoches')
+                        if i <= 2:
+                            if lossType is None or lossType == 'mse':
+                                ax.set_ylabel('Mean Square Error')
+                            elif lossType == 'ce':
+                                ax.set_ylabel('Cross Entropy Loss')
                             else:
-                                ax.set_ylabel('Accuracy')
-                            ax.grid(True)
-
-                legendList.append(name)
-                for i, (line, ax, title) in enumerate(zip(curves.T, axs.ravel(),
-                                                          ('Training Loss', 'Validation Loss', 'Testing Loss',
-                                                           'Training Accuracy', 'Validation Accuracy', 'Testing Accuracy'))):
-                    ax.plot(line)
-                    ax.set_title(title)
-                    ax.set_xlabel('Epoches')
-                    if i <= 2:
-                        if lossType is None or lossType == 'mse':
-                            ax.set_ylabel('Mean Square Error')
-                        elif lossType == 'ce':
-                            ax.set_ylabel('Cross Entropy Loss')
+                                raise Exception('Invalid lossType = %s' % lossType)
                         else:
-                            raise Exception('Invalid lossType = %s' % lossType)
-                    else:
-                        ax.set_ylabel('Accuracy')
-                    ax.grid(True)
+                            ax.set_ylabel('Accuracy')
+                        ax.grid(True)
 
-            axs[0, 0].legend(legendList)
-            fig.savefig('fig34%d.png' % j, dpi=150)
-            fig.savefig('fig34%d.pdf' % j)
+                axs[0, 0].legend(['B=%d' % i for i in bsizes])
+                fig.savefig('fig33' + lossType + '.png', dpi=150)
+                fig.savefig('fig33' + lossType + '.pdf')
+
+            #%%
+            if run34:
+                parameters = ((0.9, 0.999, 1e-08,   'Default(0.9,0.999,1e-8)'),
+                              (0.95, 0.999, 1e-08,  r'$\beta_1=0.95$'),
+                              (0.99, 0.999, 1e-08,  r'$\beta_1=0.99$'),
+                              (0.9, 0.99, 1e-08,    r'$\beta_2=0.99$'),
+                              (0.9, 0.9999, 1e-08,  r'$\beta_2=0.9999$'),
+                              (0.9, 0.999, 1e-09,   r'$\epsilon=1e-9$'),
+                              (0.9, 0.999, 1e-04,   r'$\epsilon=1e-4$'),
+                              )
+
+                res = []
+                legendList = []
+                for j, (beta1, beta2, eps, name) in enumerate(parameters):
+                    tic = time.clock()
+                    curves = tf_train(lossType=lossType, batch_size=500, beta1=beta1, beta2=beta2, epsilon=eps)
+                    print('Runtime:', time.clock() - tic)
+
+                    if j in (0, 3, 5):
+                        if j == 0:
+                            baseline = curves
+                            fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharey='row')
+                        else:
+                            axs[0, 0].legend(legendList)
+                            fig.savefig('fig34%d%s.png' % (j, lossType), dpi=150)
+                            fig.savefig('fig34%d%s.pdf' % (j, lossType))
+
+                            fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharey='row')
+                            legendList = [parameters[0][-1]]
+                            for i, (line, ax, title) in enumerate(zip(baseline.T, axs.ravel(),
+                                                                      ('Training Loss', 'Validation Loss', 'Testing Loss',
+                                                                       'Training Accuracy', 'Validation Accuracy', 'Testing Accuracy'))):
+                                ax.plot(line)
+                                ax.set_title(title)
+                                ax.set_xlabel('Epoches')
+                                if i <= 2:
+                                    if lossType is None or lossType == 'mse':
+                                        ax.set_ylabel('Mean Square Error')
+                                    elif lossType == 'ce':
+                                        ax.set_ylabel('Cross Entropy Loss')
+                                    else:
+                                        raise Exception('Invalid lossType = %s' % lossType)
+                                else:
+                                    ax.set_ylabel('Accuracy')
+                                ax.grid(True)
+
+                    legendList.append(name)
+                    for i, (line, ax, title) in enumerate(zip(curves.T, axs.ravel(),
+                                                              ('Training Loss', 'Validation Loss', 'Testing Loss',
+                                                               'Training Accuracy', 'Validation Accuracy', 'Testing Accuracy'))):
+                        ax.plot(line)
+                        ax.set_title(title)
+                        ax.set_xlabel('Epoches')
+                        if i <= 2:
+                            if lossType is None or lossType == 'mse':
+                                ax.set_ylabel('Mean Square Error')
+                            elif lossType == 'ce':
+                                ax.set_ylabel('Cross Entropy Loss')
+                            else:
+                                raise Exception('Invalid lossType = %s' % lossType)
+                        else:
+                            ax.set_ylabel('Accuracy')
+                        ax.grid(True)
+
+                axs[0, 0].legend(legendList)
+                fig.savefig('fig34%d%s.png' % (j, lossType), dpi=150)
+                fig.savefig('fig34%d%s.pdf' % (j, lossType))
