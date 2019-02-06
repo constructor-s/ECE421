@@ -1,9 +1,10 @@
-import tensorflow as tf
-import numpy as np
-import matplotlib.pyplot as plt
-
 import time
+
+import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
 from scipy.special import expit
+
 
 def loadData():
     with np.load('notMNIST.npz') as data :
@@ -286,7 +287,7 @@ def buildGraph(beta1=0.9, beta2=0.999, epsilon=1e-08,
 if __name__ == '__main__':
     # %%
     # Q1
-    linear_regression_epochs = 0
+    linear_regression_epochs = 5000
     run13 = True
     run14 = True
     save_linear_regression = False
@@ -295,11 +296,11 @@ if __name__ == '__main__':
     # Q2
     logistic_regression_epochs = 5000
     run22 = True
-    run23 = False
+    run23 = True
     
     # Q3
-    tf_epochs = 0
-    tf_lossTypes = ('ce',)
+    tf_epochs = 700
+    tf_lossTypes = ('mse', 'ce')
     run33 = True
     run34 = True
     
