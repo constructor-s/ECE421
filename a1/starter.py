@@ -1,11 +1,26 @@
-import time
+"""
+ECE421 Assignment 1
+Feb 6, 2019
 
+Return to:
+TUT0102
+
+Submitted by:
+Runjie Shi
+Jiali Yan
+
+"""
+
+# For timing
+import time
+# For plotting
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+# For sigmoid
 from scipy.special import expit
 
-
+# START OF PROVIDED CODE#
 def loadData():
     with np.load('notMNIST.npz') as data :
         Data, Target = data ['images'], data['labels']
@@ -24,6 +39,7 @@ def loadData():
         validData, validTarget = Data[3500:3600], Target[3500:3600]
         testData, testTarget = Data[3600:], Target[3600:]
     return trainData, validData, testData, trainTarget, validTarget, testTarget
+# END OF PROVIDED CODE#
 
 def MSE(W, b, x, y, reg):
     """
@@ -285,7 +301,7 @@ def buildGraph(beta1=0.9, beta2=0.999, epsilon=1e-08,
 
 
 if __name__ == '__main__':
-    # %%
+    # %% Configure which questions to run
     # Q1
     linear_regression_epochs = 5000
     run13 = True
@@ -304,6 +320,7 @@ if __name__ == '__main__':
     run33 = True
     run34 = True
     
+    # %% Load data
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
     
     trainDataVec = trainData.reshape([trainData.shape[0], trainData.shape[1]*trainData.shape[2]]).T
@@ -312,28 +329,42 @@ if __name__ == '__main__':
 
     #%% Training routine
     def train(alphaLambdList, figfilename=None, epochs=linear_regression_epochs, lossType=None):
-        mse = []
-        validMse = []
-        testMse = []
+        """
+        Training routine for Q1 and Q2 in the assignment
+        Prints to stdout and saves figure
+
+        :param alphaLambdaList: A list of [(alpha, lambda)] values
+        :param figfilename: Output figure filename
+        :param epochs: Number of GD iterations
+        :param lossType: ('mse' or 'ce')
+        :return: None
+        """
+
+        mse = []      # Training error over all combos in alphaLambdList
+        validMse = [] # Validataion error
+        testMse = []  # Testing error
         weight = []
         bias = []
-        accu = []
-        validAccu = []
-        testAccu = []
+        accu = []      # Training accuracy
+        validAccu = [] # Validataion accuracy
+        testAccu = []  # Testing accuracy
         runtime = []
 
         for j, (alpha, lambd) in enumerate(alphaLambdList):
             print('Alpha =', alpha, 'Lambda =', lambd)
 
+            # Parameter initialization
             W = np.zeros([trainDataVec.shape[0], 1])
 #            W = np.random.RandomState(42).rand(trainDataVec.shape[0], 1)
             b = np.array([[0]])
 
             if isinstance(lossType, tuple):
+                # If multiple lossTypes are provided (Q2.3)
                 lossType_ = lossType[j]
             else:
                 lossType_ = lossType
             
+            # Run GD
             tic = time.clock()
             W, b, mseList, validMseList, testMseList, accuracyList, validAccuracyList, testAccuracyList = grad_descent(
                 W, b, trainDataVec, trainTarget.T, alpha,
@@ -341,6 +372,7 @@ if __name__ == '__main__':
                 validDataVec, validTarget.T, testDataVec, testTarget.T)
             runtime.append(time.clock() - tic)
 
+            # Collect results
             mse.append(mseList)
             validMse.append(validMseList)
             testMse.append(testMseList)
@@ -352,6 +384,7 @@ if __name__ == '__main__':
             validAccu.append(validAccuracyList)
             testAccu.append(testAccuracyList)
 
+        # Store as numpy.ndarray
         mse = np.array(mse)
         validMse = np.array(validMse)
         testMse = np.array(testMse)
@@ -363,9 +396,11 @@ if __name__ == '__main__':
         validAccu = np.array(validAccu)
         testAccu = np.array(testAccu)
 
+        # Save result to disk
         if save_linear_regression and figfilename is not None:
             np.savez(figfilename + '.npz', mse=mse, weight=weight, bias=bias)
 
+        # Plotting
         if plot_linear_regression:
             fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharey='row')
 
@@ -373,10 +408,12 @@ if __name__ == '__main__':
                     axs.ravel(),
                     (mse, validMse, testMse, accu, validAccu, testAccu),
                     ('Training Loss', 'Validation Loss', 'Testing Loss',
-                     'Training Accuracy', 'Validation Accuracy', 'Testing Accuracy'),
+                     'Training Accuracy', 'Validation Accuracy', 'Testing Accuracy'), # Title for the 2x3 plots
             )):
+                # Loss plotting
                 if i <= 2:
                     if isinstance(lossType, tuple):
+                        # Use left and right axis for Q2.3
                         for line, lossType_ in zip(err, lossType):
                             if lossType_ is None or lossType_ == 'mse':
                                 ax.plot(line)
@@ -402,6 +439,7 @@ if __name__ == '__main__':
                     ax.grid()
                     ax.set_xlabel('Epoches')
                 else:
+                    # Plot accuracy
                     ax.plot(err.T)
                     ax.set_title(title)
                     ax.grid()
@@ -409,13 +447,16 @@ if __name__ == '__main__':
                     ax.set_ylabel('Accuracy')
 
             if isinstance(lossType, tuple):
+                # Put legend on [1, 0]
                 axs[1, 0].legend(lossType)
             else:
+                # Put legend on [0, 0]
                 axs[0, 0].legend([r'$\alpha=%g,\lambda=%g$' % (alpha, lambd)
                                 for alpha, lambd in alphaLambdList])
             if figfilename:
                 plt.savefig(figfilename, dpi=150)
             
+            # Print out final result
             print('Alpha', 'Lambda', 'Runtime',
                   'Training Loss', 'Validation Loss', 'Testing Loss',
                   'Training Accuracy', 'Validation Accuracy', 'Testing Accuracy', sep='\t')
@@ -468,13 +509,26 @@ if __name__ == '__main__':
         def tf_train(beta1=0.9, beta2=0.999, epsilon=1e-08, 
                lossType=None, learning_rate=0.001, stddev=0.5, 
                batch_size=500, lambd_val=0, tf_epochs=tf_epochs):
+            """
+            Training routine for Q3 (Tensorflow)
+
+            beta1, beta2, epsilon, learning_rate: for the AdamOptimizer
+            lossType: ('mse' or 'ce')
+            stddev: truncated_normal initialization
+            batch_size: batch size
+            lambd_val: value for lambda / reg
+            tf_epochs: number of iterations
+            """
             
+            # Print out configuration
             print('beta1', 'beta2', 'epsilon', 'lossType', 'learning_rate', 'stddev', 'batch_size', 'lambd_val', 'tf_epochs', sep='\t')
             print(beta1, beta2, epsilon, lossType, learning_rate, stddev, batch_size, lambd_val, tf_epochs, sep='\t')
             
+            # Get graph
             optimizer, W, b, x, y, lambd, yhat, loss = buildGraph(beta1=beta1, beta2=beta2, epsilon=epsilon, 
                lossType=lossType, learning_rate=learning_rate, stddev=stddev)
             
+            # Dictionary to feed in for reporting
             train_dict = {x: trainDataVec,
                           y: trainTarget.T,
                           lambd: ((lambd_val,),)}
@@ -486,7 +540,6 @@ if __name__ == '__main__':
                          lambd: ((lambd_val,),)}
             
             results = []
-            
             rand = np.random.RandomState(421)
             init = tf.global_variables_initializer()
             with tf.Session() as sess:
@@ -494,6 +547,7 @@ if __name__ == '__main__':
                 
                 print('iter', 'train_loss', 'valid_loss', 'test_loss', 'train_acc', 'valid_acc', 'test_acc', sep='\t')
                 for i in range(tf_epochs):
+                    # Record losses and accuracy
                     valid_loss, valid_yhat = sess.run([
                             loss, yhat
                             ], feed_dict=valid_dict)
@@ -529,9 +583,10 @@ if __name__ == '__main__':
             print()                    
             return np.array(results)
 
-        #%%
+        #%% Q3: Run both loss types
         for lossType in tf_lossTypes:
             if run33:
+                # Investigate effect of batch size
                 res = []
                 bsizes = (100, 500, 700, 1750)
                 fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharey='row')
@@ -561,7 +616,7 @@ if __name__ == '__main__':
                 fig.savefig('fig33' + lossType + '.png', dpi=150)
                 fig.savefig('fig33' + lossType + '.pdf')
 
-            #%%
+            #%% Investigate effect of Adam parameters
             if run34:
                 parameters = ((0.9, 0.999, 1e-08,   'Default(0.9,0.999,1e-8)'),
                               (0.95, 0.999, 1e-08,  r'$\beta_1=0.95$'),
