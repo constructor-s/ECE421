@@ -5,8 +5,6 @@ import matplotlib.pyplot as plt
 import time
 from scipy.special import expit
 
-from collections.abc import Iterable
-
 def loadData():
     with np.load('notMNIST.npz') as data :
         Data, Target = data ['images'], data['labels']
@@ -212,6 +210,17 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
 
 def buildGraph(beta1=0.9, beta2=0.999, epsilon=1e-08, 
                lossType=None, learning_rate=0.001, d=784, stddev=0.5):
+    """
+
+    :param beta1: For AdamOptimizer: A float value or a constant float tensor. The exponential decay rate for the 1st moment estimates.
+    :param beta2: For AdamOptimizer: A float value or a constant float tensor. The exponential decay rate for the 2nd moment estimates.
+    :param epsilon: For AdamOptimizer: A small constant for numerical stability.
+    :param lossType: 'mse' or 'ce'
+    :param learning_rate: Learning rate for AdamOptimizer
+    :param d: dimension of the dataset
+    :param stddev: standard deviation of the truncated_normal initializer
+    :return: TF objects: optimizer, W, b, x, y, lambd, yhat, loss
+    """
     # Validate input
     if lossType is None or lossType == 'mse':
         pass
@@ -285,8 +294,8 @@ if __name__ == '__main__':
     
     # Q2
     logistic_regression_epochs = 5000
-    run22 = False
-    run23 = True
+    run22 = True
+    run23 = False
     
     # Q3
     tf_epochs = 0
@@ -319,7 +328,7 @@ if __name__ == '__main__':
 #            W = np.random.RandomState(42).rand(trainDataVec.shape[0], 1)
             b = np.array([[0]])
 
-            if isinstance(lossType, Iterable):
+            if isinstance(lossType, tuple):
                 lossType_ = lossType[j]
             else:
                 lossType_ = lossType
@@ -366,7 +375,7 @@ if __name__ == '__main__':
                      'Training Accuracy', 'Validation Accuracy', 'Testing Accuracy'),
             )):
                 if i <= 2:
-                    if isinstance(lossType, Iterable):
+                    if isinstance(lossType, tuple):
                         for line, lossType_ in zip(err, lossType):
                             if lossType_ is None or lossType_ == 'mse':
                                 ax.plot(line)
@@ -398,7 +407,7 @@ if __name__ == '__main__':
                     ax.set_xlabel('Epoches')
                     ax.set_ylabel('Accuracy')
 
-            if isinstance(lossType, Iterable):
+            if isinstance(lossType, tuple):
                 axs[1, 0].legend(lossType)
             else:
                 axs[0, 0].legend([r'$\alpha=%g,\lambda=%g$' % (alpha, lambd)
