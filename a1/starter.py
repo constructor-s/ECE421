@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import time
 from scipy.special import expit
 
+from collections.abc import Iterable
+
 def loadData():
     with np.load('notMNIST.npz') as data :
         Data, Target = data ['images'], data['labels']
@@ -25,68 +27,90 @@ def loadData():
     return trainData, validData, testData, trainTarget, validTarget, testTarget
 
 def MSE(W, b, x, y, reg):
-    # Your implementation here
+    """
+    Calculate 0.5 * Mean Squared Error + regularization
+    :param W: 784x1 weight
+    :param b: 1x1 bias
+    :param x: 784xn input features
+    :param y: 1xn output label
+    :param reg: scalar regularization term (lambda)
+    :return: MSE
+    """
 #    W = np.concatenate([b, W])
 #    x = np.concatenate([-np.ones([1, x.shape[1]]), x], axis=0)
-    
+
     err = W.T.dot(x) + b - y
-    mse = err.dot(err.T) * 1.0 / 2.0 / x.shape[1]
-    regularization = reg * 0.5  * W.T.dot(W)
+    mse = err.dot(err.T) * 1.0 / 2.0 / x.shape[1]  # x.shape[1] == n
+    regularization = reg * 0.5 * W.T.dot(W)
 
     return mse + regularization    
 
 def gradMSE(W, b, x, y, reg):
+    """
+    Calculate gradient of MSE with respect to W (weight) and b (bias)
+    :param W: 784x1 weight
+    :param b: 1x1 bias
+    :param x: 784xn input features
+    :param y: 1xn output label
+    :param reg: scalar regularization term (lambda)
+    :return: tuple(grad MSE with respect to W (784x1), grad MSE with respect to b (1x1))
+    """
     # Your implementation here
 #    W = np.concatenate([b, W])
 #    x = np.concatenate([-np.ones([1, x.shape[1]]), x], axis=0)
     
     err = W.T.dot(x) + b - y
-    mse = 1.0 / x.shape[1] * x.dot(err.T)
-    regularization = reg * W
+    grad_mse = 1.0 / x.shape[1] * x.dot(err.T)
+    grad_reg = reg * W
+
+    # Gradient with respect to W
+    gradW = grad_mse + grad_reg
+
+    # Gradient with respect to b
+    gradB = 1.0 / x.shape[1] * np.sum(err)
     
-    grad = mse + regularization
-    
-    gradB = np.sum(1.0 / x.shape[1] * err)
-    
-    return grad, gradB
+    return gradW, gradB
 
 def crossEntropyLoss(W, b, x, y, reg):
-    # Your implementation here
+    """
+    Calculate cross entropy loss
+    :param W: 784x1 weight
+    :param b: 1x1 bias
+    :param x: 784xn input features
+    :param y: 1xn output label
+    :param reg: scalar regularization term (lambda)
+    :return: cross entropy loss
+    """
+    # Calculate prediction
     z = W.T.dot(x) + b
     yhat = expit(z)
     
     N = y.size
     
-#    cel = 1.0 / N * np.sum(
-#            -y * np.log(yhat)
-#            -(1-y) * np.log(1-yhat)
-#            ) + reg / 2.0 * W.T.dot(W)
-    
     assert np.all((y == 0) | (y == 1))
+
+    # To prevent taking log of zero and speed up computation time, split into two cases
     sum_parts = np.zeros_like(yhat)
+    # When y is zero
     sum_parts[y==0] = -np.log(1-yhat[y==0])
+    # When y is not zero
     sum_parts[y==1] = -np.log(yhat[y==1])
+
     cel = 1.0 / N * np.sum(sum_parts) + reg / 2.0 * W.T.dot(W)
 
-    # cel = 1.0 / N * np.sum(
-    #         -y * x -
-    #         -np.log(1-yhat)
-    #         ) + reg / 2.0 * W.T.dot(W)
-    
     return cel
 
 def gradCE(W, b, x, y, reg):
     """
-
-    :param W: 784x1
-    :param b: 1x1
-    :param x: 784xn
-    :param y: 1xn
-    :param reg: scalar
-    :type reg: float
-    :return:
+    Calculate gradient of cross entropy loss
+    :param W: 784x1 weight
+    :param b: 1x1 bias
+    :param x: 784xn input features
+    :param y: 1xn output label
+    :param reg: scalar regularization term (lambda)
+    :return: tuple(grad CEL with respect to W (784x1), grad CEL with respect to b (1x1))
     """
-    # Your implementation here
+    # Calculate prediction
     z = W.T.dot(x) + b  # 1xn
     yhat = expit(z)  # 1xn
 
@@ -95,6 +119,7 @@ def gradCE(W, b, x, y, reg):
 
     N = y.size
 
+    # Implement simplified analytical expression derived
     dldw = 1.0 / N * x.dot((yhat - y).T) + reg * W  # 784x1
 
     dldb = 1.0 / N * np.sum(
@@ -105,7 +130,24 @@ def gradCE(W, b, x, y, reg):
 
 def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS, lossType=None,
                  validData=None, validTarget=None, testData=None, testTarget=None):
-    # Your implementation here
+    """
+    Perform a custom implemented gradient descent on the data set by optimizing W and b with the specified lossType
+    :param W: 784x1 weight
+    :param b: 1x1 bias
+    :param trainingData: 784xn input features
+    :param trainingLabels: 1xn output label
+    :param alpha: learning rate multiplied to the gradient
+    :param iterations: number of descent iterations
+    :param reg: scalar regularization term (lambda)
+    :param EPS: absolute tolerance on the loss for stopping descent
+    :param lossType: 'mse' or 'ce'
+    :param validData: 784xn input features, not used for training (optional)
+    :param validTarget: 1xn output label, not used for training (optional)
+    :param testData: 784xn input features, not used for training (optional)
+    :param testTarget: 1xn output label, not used for training (optional)
+    :return: Tuple(W (optimized), b (optimized), mseList of loss values at each iterations) If validation and testing data are also provided, then returns Tuple(W, b, mseList, validMseList, testMseList, accuracyList, validAccuracyList, testAccuracyList)
+    """
+    # Assign correct error function, gradient function, and accuracy calculation functions based on lossType
     if lossType is None or lossType == 'mse':
         errorFun = MSE
         gradErrorFun = gradMSE
@@ -117,16 +159,20 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
     else:
         raise Exception('Invalid lossType = %s' % lossType)
 
+    # Initialize list for storing training progress
     mseList = []
     validMseList = []
     testMseList = []
     accuracyList = []
     validAccuracyList = []
     testAccuracyList = []
+
     for i in range(iterations):
+        # Print progress every 50 iterations
         if i % 50 == 49:
             print('\rIteration %03d/%03d' % (i, iterations), end='\r')
-        
+
+        # Calculate loss
         mse = errorFun(W, b, trainingData, trainingLabels, reg)
         mse = np.asscalar(mse)
         mseList.append(mse)
@@ -140,20 +186,25 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
                     errorFun(W, b, testData, testTarget, reg)
                     ))
 
+        # Calculate accuracy
         accuracy = lambda x, y: accfun(x, y, W, b)
-#        print(np.min(expit(W.T.dot(trainDataVec) + b)), np.max(expit(W.T.dot(trainDataVec) + b)))
         accuracyList.append(accuracy(trainDataVec, trainingLabels))
         validAccuracyList.append(accuracy(validDataVec, validTarget))
         testAccuracyList.append(accuracy(testDataVec, testTarget))
-        
+
+        # If the loss is less than tolerance, then stop
         if np.abs(mse) < EPS:
             break
-        
+
+        # Calculate gradient
         gradW, gradB = gradErrorFun(W, b, trainingData, trainingLabels, reg)
+
+        # Descent by learning rate
         W = W - alpha * gradW
         b = b - alpha * gradB
         
-    print()    
+    print()
+
     if validData is None or validTarget is None or testData is None or testTarget is None:
         return W, b, mseList
     else:
@@ -233,10 +284,12 @@ if __name__ == '__main__':
     plot_linear_regression = True
     
     # Q2
-    logistic_regression_epochs = 0
+    logistic_regression_epochs = 5000
+    run22 = False
+    run23 = True
     
     # Q3
-    tf_epochs = 700
+    tf_epochs = 0
     tf_lossTypes = ('ce',)
     run33 = True
     run34 = True
@@ -247,7 +300,7 @@ if __name__ == '__main__':
     validDataVec = validData.reshape([validData.shape[0], validData.shape[1]*validData.shape[2]]).T
     testDataVec = testData.reshape([testData.shape[0], testData.shape[1]*testData.shape[2]]).T
 
-
+    #%% Training routine
     def train(alphaLambdList, figfilename=None, epochs=linear_regression_epochs, lossType=None):
         mse = []
         validMse = []
@@ -259,17 +312,22 @@ if __name__ == '__main__':
         testAccu = []
         runtime = []
 
-        for alpha, lambd in alphaLambdList:
+        for j, (alpha, lambd) in enumerate(alphaLambdList):
             print('Alpha =', alpha, 'Lambda =', lambd)
 
             W = np.zeros([trainDataVec.shape[0], 1])
 #            W = np.random.RandomState(42).rand(trainDataVec.shape[0], 1)
             b = np.array([[0]])
+
+            if isinstance(lossType, Iterable):
+                lossType_ = lossType[j]
+            else:
+                lossType_ = lossType
             
             tic = time.clock()
             W, b, mseList, validMseList, testMseList, accuracyList, validAccuracyList, testAccuracyList = grad_descent(
                 W, b, trainDataVec, trainTarget.T, alpha,
-                epochs, lambd, 0, lossType,
+                epochs, lambd, 1e-7, lossType_,
                 validDataVec, validTarget.T, testDataVec, testTarget.T)
             runtime.append(time.clock() - tic)
 
@@ -300,28 +358,51 @@ if __name__ == '__main__':
 
         if plot_linear_regression:
             fig, axs = plt.subplots(2, 3, figsize=(15, 10), sharey='row')
+
             for i, (ax, err, title) in enumerate(zip(
                     axs.ravel(),
                     (mse, validMse, testMse, accu, validAccu, testAccu),
                     ('Training Loss', 'Validation Loss', 'Testing Loss',
                      'Training Accuracy', 'Validation Accuracy', 'Testing Accuracy'),
             )):
-                ax.plot(err.T)
-                ax.set_title(title)
-                ax.grid()
-                ax.set_xlabel('Epoches')
                 if i <= 2:
-                    if lossType is None or lossType == 'mse':
-                        ax.set_ylabel('Mean Square Error')
-                    elif lossType == 'ce':
-                        ax.set_ylabel('Cross Entropy Loss')
+                    if isinstance(lossType, Iterable):
+                        for line, lossType_ in zip(err, lossType):
+                            if lossType_ is None or lossType_ == 'mse':
+                                ax.plot(line)
+                                if i == 0:
+                                    ax.set_ylabel('Mean Square Error')
+                            elif lossType_ == 'ce':
+                                ax2 = ax.twinx()
+                                ax2.plot(line, color='#ff7f0e')
+                                if i == 2:
+                                    ax2.set_ylabel('Cross Entropy Loss')
+                            else:
+                                raise Exception('Invalid lossType = %s' % lossType)
                     else:
-                        raise Exception('Invalid lossType = %s' % lossType)
+                        ax.plot(err.T)
+                        if lossType is None or lossType == 'mse':
+                            ax.set_ylabel('Mean Square Error')
+                        elif lossType == 'ce':
+                            ax.set_ylabel('Cross Entropy Loss')
+                        else:
+                            raise Exception('Invalid lossType = %s' % lossType)
+
+                    ax.set_title(title)
+                    ax.grid()
+                    ax.set_xlabel('Epoches')
                 else:
+                    ax.plot(err.T)
+                    ax.set_title(title)
+                    ax.grid()
+                    ax.set_xlabel('Epoches')
                     ax.set_ylabel('Accuracy')
 
-            axs[0, 0].legend([r'$\alpha=%g,\lambda=%g$' % (alpha, lambd)
-                            for alpha, lambd in alphaLambdList])
+            if isinstance(lossType, Iterable):
+                axs[1, 0].legend(lossType)
+            else:
+                axs[0, 0].legend([r'$\alpha=%g,\lambda=%g$' % (alpha, lambd)
+                                for alpha, lambd in alphaLambdList])
             if figfilename:
                 plt.savefig(figfilename, dpi=150)
             
@@ -339,7 +420,7 @@ if __name__ == '__main__':
     if linear_regression_epochs:
         #%% Part 1.3
         if run13:
-            train([(0.005, 0), (0.001, 0), (0.0001, 0)], figfilename='fig13.png')
+            train(((0.0001, 0), (0.001, 0), (0.005, 0)), figfilename='fig13.png')
             
         #%% Part 1.4
         if run14:
@@ -364,10 +445,13 @@ if __name__ == '__main__':
               '%.3f' % accuracy(testDataVec, testTarget))
 
     # %% Q2
-    if logistic_regression_epochs:
-        train([(0.005, 0.001), (0.005, 0.1), (0.005, 0.5)], figfilename='fig23.png',
+    if logistic_regression_epochs and run22:
+        train([(0.005, 0.001), (0.005, 0.1), (0.005, 0.5)], figfilename='fig22.png',
               epochs=logistic_regression_epochs, lossType='ce')
-        
+
+    if logistic_regression_epochs and run23:
+        train([(0.005, 0), (0.005, 0)], figfilename='fig23.png',
+              epochs=logistic_regression_epochs, lossType=('ce', 'mse'))
         
     # %% Q3
     if tf_epochs:
