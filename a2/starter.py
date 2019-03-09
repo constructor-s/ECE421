@@ -161,7 +161,7 @@ if __name__ == '__main__':
     hidden_layer_size = 1000
     output_layer_size = newtrain.shape[0]
 
-    ran = np.random.RandomState(421)
+    ran = np.random.RandomState(42)
     Whidden = ran.normal(0.0, np.sqrt(2.0 / (input_layer_size + hidden_layer_size)), (input_layer_size, hidden_layer_size))
     bhidden = ran.normal(0.0, np.sqrt(2.0 / (input_layer_size + hidden_layer_size)), (hidden_layer_size, 1))
     Wout = ran.normal(0.0, np.sqrt(2.0 / (hidden_layer_size + output_layer_size)), (hidden_layer_size, output_layer_size))
@@ -173,7 +173,8 @@ if __name__ == '__main__':
     bout_v_old = np.zeros_like(bout)
 
     tt = time.perf_counter()
-    n_epoches = 10
+    n_epoches = 200
+
     for i in range(n_epoches):
 
         Shidden = computeLayer(trainData, Whidden, bhidden)
@@ -241,3 +242,9 @@ if __name__ == '__main__':
     print((time.perf_counter() - tt) * 1.0 / n_epoches, 'seconds per iter')
 
 
+# from line_profiler import LineProfiler
+# lp = LineProfiler()
+# lp.add_function(computeLayer)
+# lp_wrapper = lp(main)
+# lp_wrapper()
+# lp.print_stats()
