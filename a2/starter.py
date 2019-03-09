@@ -57,6 +57,9 @@ def relu(x):
     """
     return np.where(x > 0, x, 0)
 
+def drelu(x):
+    return np.where(x > 0, 1, 0)
+
 def softmax(x):
     """
 
@@ -69,6 +72,11 @@ def softmax(x):
     ret = ex / np.sum(ex, 1, keepdims=True)
     assert ret.shape == (10, N)
     return ret
+
+def dsoftmax(y):
+    assert np.all(y > 0)
+    assert np.all(y < 1)
+    return y * (1 - y)
 
 def computeLayer(X, W, b):
     """
@@ -130,7 +138,7 @@ def gradCE(target, prediction):
     s = np.atleast_2d(prediction)
     assert t.shape == s.shape
 
-    N, K = t.shape
+    K, N = t.shape
     assert K == 10
 
     ret = - 1.0 / N * t / s
@@ -154,22 +162,82 @@ if __name__ == '__main__':
     output_layer_size = newtrain.shape[0]
 
     ran = np.random.RandomState(421)
-    W0 = ran.normal(0.0, 2.0 / (input_layer_size + hidden_layer_size), (input_layer_size, hidden_layer_size))
-    b0 = ran.normal(0.0, 2.0 / (input_layer_size + hidden_layer_size), (hidden_layer_size, 1))
-    W1 = ran.normal(0.0, 2.0 / (hidden_layer_size + output_layer_size), (hidden_layer_size, output_layer_size))
-    b1 = ran.normal(0.0, 2.0 / (hidden_layer_size + output_layer_size), (output_layer_size, 1))
+    Whidden = ran.normal(0.0, np.sqrt(2.0 / (input_layer_size + hidden_layer_size)), (input_layer_size, hidden_layer_size))
+    bhidden = ran.normal(0.0, np.sqrt(2.0 / (input_layer_size + hidden_layer_size)), (hidden_layer_size, 1))
+    Wout = ran.normal(0.0, np.sqrt(2.0 / (hidden_layer_size + output_layer_size)), (hidden_layer_size, output_layer_size))
+    bout = ran.normal(0.0, np.sqrt(2.0 / (hidden_layer_size + output_layer_size)), (output_layer_size, 1))
 
-    X1 = computeLayer(trainData, W0, b0)
-    S1 = relu(X1)
-    X2 = computeLayer(S1, W1, b1)
-    S2 = softmax(X2)
-    assert S2.shape == newtrain.shape
+    Whidden_v_old = np.zeros_like(Whidden)
+    bhidden_v_old = np.zeros_like(bhidden)
+    Wout_v_old = np.zeros_like(Wout)
+    bout_v_old = np.zeros_like(bout)
 
-    pred = np.argmax(S2, 0)
-    assert pred.shape == trainTarget.shape
-    accuracy = np.count_nonzero(pred == trainTarget) * 1.0 / trainTarget.size
-    print(accuracy)
+    tt = time.perf_counter()
+    n_epoches = 10
+    for i in range(n_epoches):
 
-    print(CE(newtrain, S2))
+        Shidden = computeLayer(trainData, Whidden, bhidden)
+        Xhidden = relu(Shidden)
+        Sout = computeLayer(Xhidden, Wout, bout)
+        Xout = softmax(Sout)
+        assert Xout.shape == newtrain.shape
+
+        pred = np.argmax(Xout, 0)
+        assert pred.shape == trainTarget.shape
+        accuracy = np.count_nonzero(pred == trainTarget) * 1.0 / trainTarget.size
+
+        print(i, accuracy, CE(newtrain, Xout))
+
+        dl_dXout = gradCE(newtrain, Xout)
+        dXout_dSout = dsoftmax(Xout)
+        dSout_dWout = Xhidden
+
+        dl_dSout = dl_dXout * dXout_dSout
+
+        N = trainTarget.size
+
+        # dl_dWout = 1.0 / N * (dl_dSout).dot(dSout_dWout.T)
+        dl_dWout = dl_dSout.dot(dSout_dWout.T)
+        dl_dWout = dl_dWout.T
+        assert dl_dWout.shape == Wout.shape
+
+        # dl_dbout = np.mean(dl_dSout, 1, keepdims=True)
+        dl_dbout = np.sum(dl_dSout, 1, keepdims=True)
+        assert dl_dbout.shape == bout.shape
+
+        dSout_dXhidden = Wout
+        dXhidden_dShidden = drelu(Shidden)
+
+        dl_dShidden = dSout_dXhidden.dot(dl_dSout) * dXhidden_dShidden
+
+        dShidden_dWhidden = trainData
+        # dl_dWhidden = 1.0 / N * (dl_dShidden).dot(dShidden_dWhidden.T)
+        dl_dWhidden = dl_dShidden.dot(dShidden_dWhidden.T)
+        dl_dWhidden = dl_dWhidden.T
+        assert dl_dWhidden.shape == Whidden.shape
+
+        # dl_dbhidden = np.mean(dl_dShidden, 1, keepdims=True)
+        dl_dbhidden = np.sum(dl_dShidden, 1, keepdims=True)
+        assert dl_dbhidden.shape == bhidden.shape
+
+        gamma = 0.99
+        alpha = 1.0e-5
+
+        Whidden_v_new = gamma * Whidden_v_old + alpha * dl_dWhidden
+        bhidden_v_new = gamma * bhidden_v_old + alpha * dl_dbhidden
+        Wout_v_new = gamma * Wout_v_old + alpha * dl_dWout
+        bout_v_new = gamma * bout_v_old + alpha * dl_dbout
+
+        Whidden -= Whidden_v_new
+        bhidden -= bhidden_v_new
+        Wout -= Wout_v_new
+        bout -= bout_v_new
+
+        Whidden_v_old = Whidden_v_new
+        bhidden_v_old = bhidden_v_new
+        Wout_v_old = Wout_v_new
+        bout_v_old = bout_v_new
+
+    print((time.perf_counter() - tt) * 1.0 / n_epoches, 'seconds per iter')
 
 
