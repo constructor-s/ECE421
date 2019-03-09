@@ -63,11 +63,11 @@ def softmax(x):
     :param x:
     :return:
     """
-    N = x.shape[0]
-    assert x.shape[1] == 10
+    N = x.shape[1]
+    assert x.shape == (10, N)
     ex = np.exp(x)
     ret = ex / np.sum(ex, 1, keepdims=True)
-    assert ret.shape == (N, 10)
+    assert ret.shape == (10, N)
     return ret
 
 def computeLayer(X, W, b):
@@ -109,7 +109,7 @@ def CE(target, prediction):
     s = np.atleast_2d(prediction)
     assert t.shape == s.shape
 
-    N, K = t.shape
+    K, N = t.shape
     assert K == 10
 
     logs = np.log(s)
@@ -157,10 +157,19 @@ if __name__ == '__main__':
     W0 = ran.normal(0.0, 2.0 / (input_layer_size + hidden_layer_size), (input_layer_size, hidden_layer_size))
     b0 = ran.normal(0.0, 2.0 / (input_layer_size + hidden_layer_size), (hidden_layer_size, 1))
     W1 = ran.normal(0.0, 2.0 / (hidden_layer_size + output_layer_size), (hidden_layer_size, output_layer_size))
-    b1 = ran.normal(0.0, 2.0 / (hidden_layer_size + output_layer_size), (X, 1))
+    b1 = ran.normal(0.0, 2.0 / (hidden_layer_size + output_layer_size), (output_layer_size, 1))
 
     X1 = computeLayer(trainData, W0, b0)
-    X2 = computeLayer(X1, W1, b1)
-    assert X2.shape == newtrain.shape
+    S1 = relu(X1)
+    X2 = computeLayer(S1, W1, b1)
+    S2 = softmax(X2)
+    assert S2.shape == newtrain.shape
+
+    pred = np.argmax(S2, 0)
+    assert pred.shape == trainTarget.shape
+    accuracy = np.count_nonzero(pred == trainTarget) * 1.0 / trainTarget.size
+    print(accuracy)
+
+    print(CE(newtrain, S2))
 
 
