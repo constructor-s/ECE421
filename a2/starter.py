@@ -63,33 +63,38 @@ def softmax(x):
     :param x:
     :return:
     """
+    N = x.shape[0]
+    assert x.shape[1] == 10
     ex = np.exp(x)
-    return ex / np.sum(ex)
+    ret = ex / np.sum(ex, 1, keepdims=True)
+    assert ret.shape == (N, 10)
+    return ret
 
 def computeLayer(X, W, b):
     """
 
-    :param X: input, m x 1
-    :param W: weight, m x n
-    :param b: bias, n x 1
+    :param X: input, m_in x N
+    :param W: weight, m_in x n_out
+    :param b: bias, n_out x N
     :return:
     """
-    X = np.asarray(X).reshape((-1, 1))
+    X = np.atleast_2d(X)
     W = np.atleast_2d(W)
     b = np.asarray(b).reshape((-1, 1))
 
-    m = X.size
-    n = W.shape[1]
-    assert X.shape == (m, 1)
-    assert W.shape[0] == m
+    m_in = X.shape[0]
+    N = X.shape[1]
+    n_out = W.shape[1]
+    assert X.shape == (m_in, N)
+    assert W.shape == (m_in, n_out)
 
     ret = X.T.dot(W)
 
     ret = ret.T
-    assert ret.shape == (n, 1)
+    assert ret.shape == (n_out, N)
 
     ret += b
-    assert ret.shape == (n, 1)
+    assert ret.shape == (n_out, N)
 
     return ret
 
@@ -136,7 +141,26 @@ def gradCE(target, prediction):
 
 if __name__ == '__main__':
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
+    trainData = trainData.reshape((trainData.shape[0], -1)).T
+    validData = validData.reshape((validData.shape[0], -1)).T
+    testData = testData.reshape((testData.shape[0], -1)).T
     newtrain, newvalid, newtest = convertOneHot(trainTarget, validTarget, testTarget)
+    newtrain = newtrain.T
+    newvalid = newvalid.T
+    newtest = newtest.T
 
-    def q1():
-        pass
+    input_layer_size = trainData.shape[0]
+    hidden_layer_size = 1000
+    output_layer_size = newtrain.shape[0]
+
+    ran = np.random.RandomState(421)
+    W0 = ran.normal(0.0, 2.0 / (input_layer_size + hidden_layer_size), (input_layer_size, hidden_layer_size))
+    b0 = ran.normal(0.0, 2.0 / (input_layer_size + hidden_layer_size), (hidden_layer_size, 1))
+    W1 = ran.normal(0.0, 2.0 / (hidden_layer_size + output_layer_size), (hidden_layer_size, output_layer_size))
+    b1 = ran.normal(0.0, 2.0 / (hidden_layer_size + output_layer_size), (X, 1))
+
+    X1 = computeLayer(trainData, W0, b0)
+    X2 = computeLayer(X1, W1, b1)
+    assert X2.shape == newtrain.shape
+
+
