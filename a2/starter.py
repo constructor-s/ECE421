@@ -42,7 +42,6 @@ def shuffle(trainData, trainTarget):
     data, target = trainData[randIndx], target[randIndx]
     return data, target
 
-
 def relu(x):
     """
     >>> %timeit np.where(x>0, x, 0)
@@ -54,7 +53,9 @@ def relu(x):
     :param x:
     :return:
     """
-    return np.where(x > 0, x, 0)
+    # ret = np.where(x > 0, x, 0)
+    ret = x * (x > 0)
+    return ret
 
 # def drelu(x):
 #     return np.where(x > 0, 1, 0)
@@ -65,14 +66,19 @@ def softmax(x):
     :return:
     """
     N = x.shape[1]
-    assert x.shape == (10, N)  # TODO: remove
-    x = x - np.max(x, 1, keepdims=True)
+    # assert x.shape == (10, N)  # TODO: remove
+    x = x - np.max(x, 1, keepdims=True)  # Numerically stable version of softmax
 
     ex = np.exp(x)
-    print(x.min(), x.max())
     assert not np.any(np.isnan(ex))
-    ret = ex / np.sum(ex, 1, keepdims=True)
+    assert np.count_nonzero(ex) == ex.size
+
+    denom = np.sum(ex, 0, keepdims=True)
+    assert denom.shape == (1, N)
+
+    ret = ex / denom
     assert ret.shape == x.shape
+
     return ret
 
 # def dsoftmax(y):
@@ -131,18 +137,20 @@ def computeLayer(X, W, b):
     :param b: bias, n_out x N
     :return:
     """
-    m_in = X.shape[0]
-    N = X.shape[1]
-    n_out = W.shape[1]
-    assert X.shape == (m_in, N)
-    assert W.shape == (m_in, n_out)
-    assert b.shape == (n_out, 1)
+    # m_in = X.shape[0]
+    # N = X.shape[1]
+    # n_out = W.shape[1]
+    # assert X.shape == (m_in, N)
+    # assert W.shape == (m_in, n_out)
+    # assert b.shape == (n_out, 1)
 
-    ret = X.T.dot(W).T
-    assert ret.shape == (n_out, N)
+    # ret = X.T.dot(W).T
+    # assert ret.shape == (n_out, N)
 
-    ret += b
-    assert ret.shape == (n_out, N)
+    # ret += b
+
+    ret = W.T.dot(X) + b
+    # assert ret.shape == (n_out, N)
 
     return ret
 
@@ -157,14 +165,16 @@ def CE(target, prediction):
     assert t.shape == s.shape
 
     K, N = t.shape
-    assert K == 10
+    # assert K == 10  # TODO: Remove
 
     logs = np.log(s)
     tlogs = t * logs
 
     averagece = - 1.0 / N * np.sum(tlogs)
+    averagece = float(averagece)
+    assert not np.isnan(averagece)
 
-    return float(averagece)
+    return averagece
 
 def gradCE(target, prediction):
     """
@@ -225,9 +235,19 @@ def nn(x, weights, biases, dropout):
 
     # Output, class prediction
     out = tf.add(tf.matmul(fc1, weights['out']), biases['out'])
-    return out        
-    
-    
+    return out
+
+
+def forward(trainData, Whidden, bhidden, Wout, bout):
+    Shidden = computeLayer(trainData, Whidden, bhidden)
+    Xhidden = relu(Shidden)
+    Sout = computeLayer(Xhidden, Wout, bout)
+    Xout = softmax(Sout)
+    # assert Xout.shape == newtrain.shape
+    # Accuracy and loss calculation
+    pred = np.argmax(Xout, 0)
+    return Shidden, Xhidden, Sout, Xout, pred
+
 
 if __name__ == '__main__':
 # def main():
@@ -252,9 +272,9 @@ if __name__ == '__main__':
 
     ran = np.random.RandomState(0)
     Whidden = ran.normal(0.0, np.sqrt(2.0 / (input_layer_size + hidden_layer_size)), (input_layer_size, hidden_layer_size))
-    bhidden = ran.normal(0.0, np.sqrt(2.0 / (input_layer_size + hidden_layer_size)), (hidden_layer_size, 1))
+    bhidden = np.zeros((hidden_layer_size, 1))
     Wout = ran.normal(0.0, np.sqrt(2.0 / (hidden_layer_size + output_layer_size)), (hidden_layer_size, output_layer_size))
-    bout = ran.normal(0.0, np.sqrt(2.0 / (hidden_layer_size + output_layer_size)), (output_layer_size, 1))
+    bout = np.zeros((output_layer_size, 1))
 
     Whidden_v_old = np.zeros_like(Whidden)
     bhidden_v_old = np.zeros_like(bhidden)
@@ -262,32 +282,27 @@ if __name__ == '__main__':
     bout_v_old = np.zeros_like(bout)
 
     tt = time.perf_counter()
-    n_epoches = 200
-    gamma = 0.90
-    alpha = 0.0001
-
-    def forward(trainData):
-        Shidden = computeLayer(trainData, Whidden, bhidden)
-        Xhidden = relu(Shidden)
-        Sout = computeLayer(Xhidden, Wout, bout)
-        Xout = softmax(Sout)
-        # assert Xout.shape == newtrain.shape
-        # Accuracy and loss calculation
-        pred = np.argmax(Xout, 0)
-        return Shidden, Xhidden, Sout, Xout, pred
-
+    gamma = 0.99
+    alpha = 0.0005
 
     #%% Training
+    n_epoches = 200
+    results = []
     for i in range(n_epoches):
         # Forward pass
-        Shidden, Xhidden, Sout, Xout, pred = forward(trainData)
+        Shidden, Xhidden, Sout, Xout, pred = forward(trainData, Whidden, bhidden, Wout, bout)
         assert pred.shape == trainTarget.shape
         accuracy = np.count_nonzero(pred == trainTarget) * 1.0 / trainTarget.size
 
-        print(i, accuracy, CE(newtrain, Xout))
+        ce = CE(newtrain, Xout)
+        print(i, accuracy, ce)
 
-        _, _, _, validxout, validpred = forward(validData)
-        print(i, np.count_nonzero(validpred == validTarget) * 1.0 / validTarget.size, CE(newvalid, validxout))
+        _, _, _, validxout, validpred = forward(validData, Whidden, bhidden, Wout, bout)
+        validaccuracy = np.count_nonzero(validpred == validTarget) * 1.0 / validTarget.size
+        validce = CE(newvalid, validxout)
+        print(i, validaccuracy, validce)
+
+        results.append((accuracy, ce, validaccuracy, validce))
 
         # Back prop
         # dl_dXout = gradCE(newtrain, Xout)
@@ -345,7 +360,7 @@ if __name__ == '__main__':
 # from line_profiler import LineProfiler
 # lp = LineProfiler()
 # lp.add_function(computeLayer)
-# lp.add_function(dsoftmax)
+# lp.add_function(forward)
 # lp_wrapper = lp(main)
 # lp_wrapper()
 # lp.print_stats()
