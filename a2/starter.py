@@ -293,7 +293,7 @@ if __name__ == '__main__':
         if i % 3 == 0 or i == n_epoches - 1:
             elapsed = time.perf_counter() - tt
             per = elapsed / (i + 1)
-            print('\r', i, '/', ','.join(['%.2f' for i in results[-1]]), n_epoches, '%d' % elapsed, '+', '%d' % (per * (n_epoches - i)), '(', per, ')', end='    \r')
+            print('\r', i, '/', ','.join(['%.2f' % i for i in results[-1]]), n_epoches, '%d' % elapsed, '+', '%d' % (per * (n_epoches - i)), '(', per, ')', end='    \r')
             ax[0].clear()
             ax[0].plot(np.asarray(results)[:, 0:3])
             ax[0].set_ylabel('Average Cross Entropy Loss')
