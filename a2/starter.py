@@ -74,7 +74,19 @@ def softmax(x):
 def dsoftmax(y):
     assert np.all(y > 0)
     assert np.all(y < 1)
-    return y * (1 - y)
+
+    assert y.shape[1] == 1
+    m = y.shape[0]
+
+    # m, N = y.shape
+    # assert m == 10
+    #
+    # ret = [np.eye(m, m) * (yy * (1-yy)) + (1 - np.eye(m, m)) * yy.reshape((m, 1)).dot(yy.reshape((1, m))) for yy in y.T]
+    # ret = np.asarray(ret)
+
+    ret = np.eye(m, m) * (y * (1-y)) + (1 - np.eye(m, m)) * y.dot(y.T)
+
+    return ret
 
 def computeLayer(X, W, b):
     """
@@ -134,7 +146,7 @@ def gradCE(target, prediction):
     assert t.shape == s.shape
 
     K, N = t.shape
-    assert K == 10
+    # assert K == 10
 
     ret = - 1.0 / N * t / s
     assert ret.shape == t.shape
@@ -188,11 +200,15 @@ def nn(x, weights, biases, dropout):
 
 if __name__ == '__main__':
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
-    trainData = trainData.reshape((trainData.shape[0], -1)).T
+    trainTarget = trainTarget[0:100]
+
+    trainData = trainData.reshape((trainData.shape[0], -1)).T[:, 0:100]
     validData = validData.reshape((validData.shape[0], -1)).T
     testData = testData.reshape((testData.shape[0], -1)).T
+
     newtrain, newvalid, newtest = convertOneHot(trainTarget, validTarget, testTarget)
-    newtrain = newtrain.T
+
+    newtrain = newtrain.T[:, 0:100]
     newvalid = newvalid.T
     newtest = newtest.T
 
@@ -228,37 +244,54 @@ if __name__ == '__main__':
 
         print(i, accuracy, CE(newtrain, Xout))
 
-        dl_dXout = gradCE(newtrain, Xout)
-        dXout_dSout = dsoftmax(Xout)
-        dSout_dWout = Xhidden
-
-        dl_dSout = dl_dXout * dXout_dSout
-
         N = trainTarget.size
 
-        # dl_dWout = 1.0 / N * (dl_dSout).dot(dSout_dWout.T)
-        dl_dWout = dl_dSout.dot(dSout_dWout.T)
-        dl_dWout = dl_dWout.T
-        assert dl_dWout.shape == Wout.shape
+        dl_dWhidden_list = []
+        dl_dbhidden_list = []
+        dl_dWout_list = []
+        dl_dbout_list = []
 
-        # dl_dbout = np.mean(dl_dSout, 1, keepdims=True)
-        dl_dbout = np.sum(dl_dSout, 1, keepdims=True)
-        assert dl_dbout.shape == bout.shape
+        for n in range(N):
 
-        dSout_dXhidden = Wout
-        dXhidden_dShidden = drelu(Shidden)
+            dl_dXout = gradCE(newtrain[:, [n]], Xout[:, [n]])
 
-        dl_dShidden = dSout_dXhidden.dot(dl_dSout) * dXhidden_dShidden
+            dXout_dSout = dsoftmax(Xout[:, [n]])
 
-        dShidden_dWhidden = trainData
-        # dl_dWhidden = 1.0 / N * (dl_dShidden).dot(dShidden_dWhidden.T)
-        dl_dWhidden = dl_dShidden.dot(dShidden_dWhidden.T)
-        dl_dWhidden = dl_dWhidden.T
-        assert dl_dWhidden.shape == Whidden.shape
+            dSout_dWout = Xhidden[:, [n]]
 
-        # dl_dbhidden = np.mean(dl_dShidden, 1, keepdims=True)
-        dl_dbhidden = np.sum(dl_dShidden, 1, keepdims=True)
-        assert dl_dbhidden.shape == bhidden.shape
+            dl_dSout = dl_dXout.T.dot(dXout_dSout)
+
+            # dl_dWout = 1.0 / N * (dl_dSout).dot(dSout_dWout.T)
+            dl_dWout = dSout_dWout.dot(dl_dSout)
+            assert dl_dWout.shape == Wout.shape
+
+            # dl_dbout = np.mean(dl_dSout, 1, keepdims=True)
+            dl_dbout = dl_dSout.T
+            assert dl_dbout.shape == bout.shape
+
+            dSout_dXhidden = Wout
+            dXhidden_dShidden = drelu(Shidden[:, [n]])
+
+            dl_dShidden = dSout_dXhidden.dot(dl_dSout.T) * dXhidden_dShidden
+
+            dShidden_dWhidden = trainData[:, [n]]
+            # dl_dWhidden = 1.0 / N * (dl_dShidden).dot(dShidden_dWhidden.T)
+            dl_dWhidden = dShidden_dWhidden.dot(dl_dShidden.T)
+            assert dl_dWhidden.shape == Whidden.shape
+
+            # dl_dbhidden = np.mean(dl_dShidden, 1, keepdims=True)
+            dl_dbhidden = dl_dShidden
+            assert dl_dbhidden.shape == bhidden.shape
+
+            dl_dWhidden_list.append(dl_dWhidden)
+            dl_dbhidden_list.append(dl_dbhidden)
+            dl_dWout_list.append(dl_dWout)
+            dl_dbout_list.append(dl_dbout)
+
+        dl_dWhidden = np.mean(dl_dWhidden_list, 0)
+        dl_dbhidden = np.mean(dl_dbhidden_list, 0)
+        dl_dWout = np.mean(dl_dWout_list, 0)
+        dl_dbout = np.mean(dl_dbout_list, 0)
 
         gamma = 0.99
         alpha = 1.0e-5
