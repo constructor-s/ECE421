@@ -56,8 +56,8 @@ def relu(x):
     """
     return np.where(x > 0, x, 0)
 
-def drelu(x):
-    return np.where(x > 0, 1, 0)
+# def drelu(x):
+#     return np.where(x > 0, 1, 0)
 
 def softmax(x):
     """
@@ -66,59 +66,63 @@ def softmax(x):
     """
     N = x.shape[1]
     assert x.shape == (10, N)  # TODO: remove
+    x = x - np.max(x, 1, keepdims=True)
+
     ex = np.exp(x)
+    print(x.min(), x.max())
+    assert not np.any(np.isnan(ex))
     ret = ex / np.sum(ex, 1, keepdims=True)
     assert ret.shape == x.shape
     return ret
 
-def dsoftmax(y):
-    """
-
-    :param y: = softmax(x)
-    :return:
-    """
-    assert np.all(y > 0)
-    assert np.all(y < 1)
-
-    N = y.shape[1]
-    m = 10  # TODO: remove
-    assert y.shape == (m, N)
-
-    # def softmax_jacob(yy):
-    #     # yy = np.asarray(yy)
-    #     # assert np.squeeze(yy).ndim == 1
-    #     m = yy.size
-    #     ret = np.where(np.eye(m, m, dtype=np.bool), yy * (1 - yy), yy.reshape((m, 1)).dot(yy.reshape((1, m))))
-    #     # ret = np.eye(m, m) * (yy * (1-yy)) + (1 - np.eye(m, m)) * yy.reshape((m, 1)).dot(yy.reshape((1, m)))
-    #     # assert np.allclose(ret, np.eye(m, m) * (yy * (1-yy)) + (1 - np.eye(m, m)) * yy.reshape((m, 1)).dot(yy.reshape((1, m))))
-    #     return ret
-    #
-    # ret0 = np.apply_along_axis(softmax_jacob, axis=0, arr=y)
-
-    ret = np.einsum('ik,jk->ijk', y, y)
-    assert ret.shape == (m, m, N)
-
-    # for i in range(N):
-    #     np.fill_diagonal(ret[:, :, i], y[:, i] * (1 - y[:, i]))
-
-    diag = np.einsum('ik,jk->ijk', y, 1 - y)
-
-    mask = np.moveaxis(np.tile(np.eye(m, dtype=np.bool), (N, 1, 1)), 0, 2)
-    assert mask.shape == diag.shape
-
-    ret = np.where(mask, diag, ret)
-
-    # assert np.allclose(ret0, ret)
-
-    # m, N = y.shape
-    # assert m == 10
-    #
-    # ret = [np.eye(m, m) * (yy * (1-yy)) + (1 - np.eye(m, m)) * yy.reshape((m, 1)).dot(yy.reshape((1, m))) for yy in y.T]
-    # ret = np.asarray(ret)
-
-    # ret = np.eye(m, m) * (y * (1-y)) + (1 - np.eye(m, m)) * y.dot(y.T)
-
-    return ret
+# def dsoftmax(y):
+#     """
+#
+#     :param y: = softmax(x)
+#     :return:
+#     """
+#     assert np.all(y > 0)
+#     assert np.all(y < 1)
+#
+#     N = y.shape[1]
+#     m = 10  # TODO: remove
+#     assert y.shape == (m, N)
+#
+#     # def softmax_jacob(yy):
+#     #     # yy = np.asarray(yy)
+#     #     # assert np.squeeze(yy).ndim == 1
+#     #     m = yy.size
+#     #     ret = np.where(np.eye(m, m, dtype=np.bool), yy * (1 - yy), yy.reshape((m, 1)).dot(yy.reshape((1, m))))
+#     #     # ret = np.eye(m, m) * (yy * (1-yy)) + (1 - np.eye(m, m)) * yy.reshape((m, 1)).dot(yy.reshape((1, m)))
+#     #     # assert np.allclose(ret, np.eye(m, m) * (yy * (1-yy)) + (1 - np.eye(m, m)) * yy.reshape((m, 1)).dot(yy.reshape((1, m))))
+#     #     return ret
+#     #
+#     # ret0 = np.apply_along_axis(softmax_jacob, axis=0, arr=y)
+#
+#     ret = np.einsum('ik,jk->ijk', -y, y)
+#     assert ret.shape == (m, m, N)
+#
+#     # for i in range(N):
+#     #     np.fill_diagonal(ret[:, :, i], y[:, i] * (1 - y[:, i]))
+#
+#     diag = np.einsum('ik,jk->ijk', y, 1 - y)
+#
+#     mask = np.moveaxis(np.tile(np.eye(m, dtype=np.bool), (N, 1, 1)), 0, 2)
+#     assert mask.shape == diag.shape
+#
+#     ret = np.where(mask, diag, ret)
+#
+#     # assert np.allclose(ret0, ret)
+#
+#     # m, N = y.shape
+#     # assert m == 10
+#     #
+#     # ret = [np.eye(m, m) * (yy * (1-yy)) + (1 - np.eye(m, m)) * yy.reshape((m, 1)).dot(yy.reshape((1, m))) for yy in y.T]
+#     # ret = np.asarray(ret)
+#
+#     # ret = np.eye(m, m) * (y * (1-y)) + (1 - np.eye(m, m)) * y.dot(y.T)
+#
+#     return ret
 
 def computeLayer(X, W, b):
     """
@@ -127,19 +131,14 @@ def computeLayer(X, W, b):
     :param b: bias, n_out x N
     :return:
     """
-    X = np.atleast_2d(X)
-    W = np.atleast_2d(W)
-    b = np.asarray(b).reshape((-1, 1))
-
     m_in = X.shape[0]
     N = X.shape[1]
     n_out = W.shape[1]
     assert X.shape == (m_in, N)
     assert W.shape == (m_in, n_out)
+    assert b.shape == (n_out, 1)
 
-    ret = X.T.dot(W)
-
-    ret = ret.T
+    ret = X.T.dot(W).T
     assert ret.shape == (n_out, N)
 
     ret += b
@@ -234,11 +233,10 @@ if __name__ == '__main__':
 # def main():
     #%% Initialize dataset
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
-    trainTarget = trainTarget
 
-    trainData = trainData.reshape((trainData.shape[0], -1)).T
-    validData = validData.reshape((validData.shape[0], -1)).T
-    testData = testData.reshape((testData.shape[0], -1)).T
+    trainData = trainData.reshape((trainData.shape[0], -1)).T - 0.5
+    validData = validData.reshape((validData.shape[0], -1)).T - 0.5
+    testData = testData.reshape((testData.shape[0], -1)).T - 0.5
 
     newtrain, newvalid, newtest = convertOneHot(trainTarget, validTarget, testTarget)
 
@@ -252,7 +250,7 @@ if __name__ == '__main__':
     output_layer_size = newtrain.shape[0]
     N = trainTarget.size
 
-    ran = np.random.RandomState(42)
+    ran = np.random.RandomState(0)
     Whidden = ran.normal(0.0, np.sqrt(2.0 / (input_layer_size + hidden_layer_size)), (input_layer_size, hidden_layer_size))
     bhidden = ran.normal(0.0, np.sqrt(2.0 / (input_layer_size + hidden_layer_size)), (hidden_layer_size, 1))
     Wout = ran.normal(0.0, np.sqrt(2.0 / (hidden_layer_size + output_layer_size)), (hidden_layer_size, output_layer_size))
@@ -265,32 +263,41 @@ if __name__ == '__main__':
 
     tt = time.perf_counter()
     n_epoches = 200
-    gamma = 0.99
-    alpha = 1.0e-4
+    gamma = 0.90
+    alpha = 0.0001
 
-    #%% Training
-    for i in range(n_epoches):
-        # Forward pass
+    def forward(trainData):
         Shidden = computeLayer(trainData, Whidden, bhidden)
         Xhidden = relu(Shidden)
         Sout = computeLayer(Xhidden, Wout, bout)
         Xout = softmax(Sout)
-        assert Xout.shape == newtrain.shape
+        # assert Xout.shape == newtrain.shape
         # Accuracy and loss calculation
         pred = np.argmax(Xout, 0)
+        return Shidden, Xhidden, Sout, Xout, pred
+
+
+    #%% Training
+    for i in range(n_epoches):
+        # Forward pass
+        Shidden, Xhidden, Sout, Xout, pred = forward(trainData)
         assert pred.shape == trainTarget.shape
         accuracy = np.count_nonzero(pred == trainTarget) * 1.0 / trainTarget.size
 
         print(i, accuracy, CE(newtrain, Xout))
 
+        _, _, _, validxout, validpred = forward(validData)
+        print(i, np.count_nonzero(validpred == validTarget) * 1.0 / validTarget.size, CE(newvalid, validxout))
+
         # Back prop
-        dl_dXout = gradCE(newtrain, Xout)
-        assert dl_dXout.shape == (output_layer_size, N)
-
-        dXout_dSout = dsoftmax(Xout)
-        assert dXout_dSout.shape == (output_layer_size, output_layer_size, N)
-
-        dl_dSout = np.einsum('ijk,jk->ik', dXout_dSout, dl_dXout)
+        # dl_dXout = gradCE(newtrain, Xout)
+        # assert dl_dXout.shape == (output_layer_size, N)
+        #
+        # dXout_dSout = dsoftmax(Xout)
+        # assert dXout_dSout.shape == (output_layer_size, output_layer_size, N)
+        #
+        # dl_dSout = np.einsum('ijk,jk->ik', dXout_dSout, dl_dXout)
+        dl_dSout = 1.0 / N * np.where(newtrain, Xout - 1, Xout)
         assert dl_dSout.shape == (output_layer_size, N)
 
         dl_dWout = Xhidden.dot(dl_dSout.T)
@@ -301,10 +308,12 @@ if __name__ == '__main__':
         assert dl_dbout.shape == (output_layer_size, 1)
         assert dl_dbout.shape == bout.shape
 
-        dl_dXhidden = Wout.dot(dl_dSout)
-        assert dl_dXhidden.shape == (hidden_layer_size, N)
 
-        dl_dShidden = dl_dXhidden * drelu(dl_dXhidden)
+        # dl_dXhidden = Wout.dot(dl_dSout)
+        # assert dl_dXhidden.shape == (hidden_layer_size, N)
+        #
+        # dl_dShidden = dl_dXhidden * drelu(dl_dXhidden)
+        dl_dShidden = np.where(Xhidden > 0, Wout.dot(dl_dSout), 0)
         assert dl_dShidden.shape == (hidden_layer_size, N)
 
         dl_dWhidden = trainData.dot(dl_dShidden.T)
