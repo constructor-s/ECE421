@@ -5,8 +5,6 @@ import time
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-from matplotlib import pyplot as plt
-
 # Load the data
 def loadData():
     with np.load("notMNIST.npz") as data:
@@ -83,55 +81,6 @@ def softmax(x):
     assert np.all(np.isfinite(ret))
 
     return ret
-
-# def dsoftmax(y):
-#     """
-#
-#     :param y: = softmax(x)
-#     :return:
-#     """
-#     assert np.all(y > 0)
-#     assert np.all(y < 1)
-#
-#     N = y.shape[1]
-#     m = 10  # TODO: remove
-#     assert y.shape == (m, N)
-#
-#     # def softmax_jacob(yy):
-#     #     # yy = np.asarray(yy)
-#     #     # assert np.squeeze(yy).ndim == 1
-#     #     m = yy.size
-#     #     ret = np.where(np.eye(m, m, dtype=np.bool), yy * (1 - yy), yy.reshape((m, 1)).dot(yy.reshape((1, m))))
-#     #     # ret = np.eye(m, m) * (yy * (1-yy)) + (1 - np.eye(m, m)) * yy.reshape((m, 1)).dot(yy.reshape((1, m)))
-#     #     # assert np.allclose(ret, np.eye(m, m) * (yy * (1-yy)) + (1 - np.eye(m, m)) * yy.reshape((m, 1)).dot(yy.reshape((1, m))))
-#     #     return ret
-#     #
-#     # ret0 = np.apply_along_axis(softmax_jacob, axis=0, arr=y)
-#
-#     ret = np.einsum('ik,jk->ijk', -y, y)
-#     assert ret.shape == (m, m, N)
-#
-#     # for i in range(N):
-#     #     np.fill_diagonal(ret[:, :, i], y[:, i] * (1 - y[:, i]))
-#
-#     diag = np.einsum('ik,jk->ijk', y, 1 - y)
-#
-#     mask = np.moveaxis(np.tile(np.eye(m, dtype=np.bool), (N, 1, 1)), 0, 2)
-#     assert mask.shape == diag.shape
-#
-#     ret = np.where(mask, diag, ret)
-#
-#     # assert np.allclose(ret0, ret)
-#
-#     # m, N = y.shape
-#     # assert m == 10
-#     #
-#     # ret = [np.eye(m, m) * (yy * (1-yy)) + (1 - np.eye(m, m)) * yy.reshape((m, 1)).dot(yy.reshape((1, m))) for yy in y.T]
-#     # ret = np.asarray(ret)
-#
-#     # ret = np.eye(m, m) * (y * (1-y)) + (1 - np.eye(m, m)) * y.dot(y.T)
-#
-#     return ret
 
 def computeLayer(X, W, b):
     """
@@ -312,8 +261,8 @@ if __name__ == '__main__':
     Wout_v_old = np.zeros_like(Wout)
     bout_v_old = np.zeros_like(bout)
 
-    gamma = 0.99
-    alpha = 0.0003
+    gamma = 0.9
+    alpha = 0.01
 
     #%% Training
     n_epoches = 200
@@ -344,7 +293,7 @@ if __name__ == '__main__':
         if i % 3 == 0 or i == n_epoches - 1:
             elapsed = time.perf_counter() - tt
             per = elapsed / (i + 1)
-            print('\r', i, '/', n_epoches, '%d' % elapsed, '+', '%d' % (per * (n_epoches - i)), '(', per, ')', end='    \r')
+            print('\r', i, '/', ','.join(['%.2f' for i in results[-1]]), n_epoches, '%d' % elapsed, '+', '%d' % (per * (n_epoches - i)), '(', per, ')', end='    \r')
             ax[0].clear()
             ax[0].plot(np.asarray(results)[:, 0:3])
             ax[0].set_ylabel('Average Cross Entropy Loss')
