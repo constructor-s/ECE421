@@ -65,18 +65,50 @@ def softmax(x):
     :return:
     """
     N = x.shape[1]
-    assert x.shape == (10, N)
+    assert x.shape == (10, N)  # TODO: remove
     ex = np.exp(x)
     ret = ex / np.sum(ex, 1, keepdims=True)
-    assert ret.shape == (10, N)
+    assert ret.shape == x.shape
     return ret
 
 def dsoftmax(y):
+    """
+
+    :param y: = softmax(x)
+    :return:
+    """
     assert np.all(y > 0)
     assert np.all(y < 1)
 
-    assert y.shape[1] == 1
-    m = y.shape[0]
+    N = y.shape[1]
+    m = 10  # TODO: remove
+    assert y.shape == (m, N)
+
+    # def softmax_jacob(yy):
+    #     # yy = np.asarray(yy)
+    #     # assert np.squeeze(yy).ndim == 1
+    #     m = yy.size
+    #     ret = np.where(np.eye(m, m, dtype=np.bool), yy * (1 - yy), yy.reshape((m, 1)).dot(yy.reshape((1, m))))
+    #     # ret = np.eye(m, m) * (yy * (1-yy)) + (1 - np.eye(m, m)) * yy.reshape((m, 1)).dot(yy.reshape((1, m)))
+    #     # assert np.allclose(ret, np.eye(m, m) * (yy * (1-yy)) + (1 - np.eye(m, m)) * yy.reshape((m, 1)).dot(yy.reshape((1, m))))
+    #     return ret
+    #
+    # ret0 = np.apply_along_axis(softmax_jacob, axis=0, arr=y)
+
+    ret = np.einsum('ik,jk->ijk', y, y)
+    assert ret.shape == (m, m, N)
+
+    # for i in range(N):
+    #     np.fill_diagonal(ret[:, :, i], y[:, i] * (1 - y[:, i]))
+
+    diag = np.einsum('ik,jk->ijk', y, 1 - y)
+
+    mask = np.moveaxis(np.tile(np.eye(m, dtype=np.bool), (N, 1, 1)), 0, 2)
+    assert mask.shape == diag.shape
+
+    ret = np.where(mask, diag, ret)
+
+    # assert np.allclose(ret0, ret)
 
     # m, N = y.shape
     # assert m == 10
@@ -84,7 +116,7 @@ def dsoftmax(y):
     # ret = [np.eye(m, m) * (yy * (1-yy)) + (1 - np.eye(m, m)) * yy.reshape((m, 1)).dot(yy.reshape((1, m))) for yy in y.T]
     # ret = np.asarray(ret)
 
-    ret = np.eye(m, m) * (y * (1-y)) + (1 - np.eye(m, m)) * y.dot(y.T)
+    # ret = np.eye(m, m) * (y * (1-y)) + (1 - np.eye(m, m)) * y.dot(y.T)
 
     return ret
 
@@ -199,22 +231,26 @@ def nn(x, weights, biases, dropout):
     
 
 if __name__ == '__main__':
+# def main():
+    #%% Initialize dataset
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
-    trainTarget = trainTarget[0:100]
+    trainTarget = trainTarget
 
-    trainData = trainData.reshape((trainData.shape[0], -1)).T[:, 0:100]
+    trainData = trainData.reshape((trainData.shape[0], -1)).T
     validData = validData.reshape((validData.shape[0], -1)).T
     testData = testData.reshape((testData.shape[0], -1)).T
 
     newtrain, newvalid, newtest = convertOneHot(trainTarget, validTarget, testTarget)
 
-    newtrain = newtrain.T[:, 0:100]
+    newtrain = newtrain.T
     newvalid = newvalid.T
     newtest = newtest.T
 
+    # %% Initialize weights
     input_layer_size = trainData.shape[0]
     hidden_layer_size = 1000
     output_layer_size = newtrain.shape[0]
+    N = trainTarget.size
 
     ran = np.random.RandomState(42)
     Whidden = ran.normal(0.0, np.sqrt(2.0 / (input_layer_size + hidden_layer_size)), (input_layer_size, hidden_layer_size))
@@ -229,72 +265,55 @@ if __name__ == '__main__':
 
     tt = time.perf_counter()
     n_epoches = 200
+    gamma = 0.99
+    alpha = 1.0e-4
 
+    #%% Training
     for i in range(n_epoches):
-
+        # Forward pass
         Shidden = computeLayer(trainData, Whidden, bhidden)
         Xhidden = relu(Shidden)
         Sout = computeLayer(Xhidden, Wout, bout)
         Xout = softmax(Sout)
         assert Xout.shape == newtrain.shape
-
+        # Accuracy and loss calculation
         pred = np.argmax(Xout, 0)
         assert pred.shape == trainTarget.shape
         accuracy = np.count_nonzero(pred == trainTarget) * 1.0 / trainTarget.size
 
         print(i, accuracy, CE(newtrain, Xout))
 
-        N = trainTarget.size
+        # Back prop
+        dl_dXout = gradCE(newtrain, Xout)
+        assert dl_dXout.shape == (output_layer_size, N)
 
-        dl_dWhidden_list = []
-        dl_dbhidden_list = []
-        dl_dWout_list = []
-        dl_dbout_list = []
+        dXout_dSout = dsoftmax(Xout)
+        assert dXout_dSout.shape == (output_layer_size, output_layer_size, N)
 
-        for n in range(N):
+        dl_dSout = np.einsum('ijk,jk->ik', dXout_dSout, dl_dXout)
+        assert dl_dSout.shape == (output_layer_size, N)
 
-            dl_dXout = gradCE(newtrain[:, [n]], Xout[:, [n]])
+        dl_dWout = Xhidden.dot(dl_dSout.T)
+        assert dl_dWout.shape == (hidden_layer_size, output_layer_size)
+        assert dl_dWout.shape == Wout.shape
 
-            dXout_dSout = dsoftmax(Xout[:, [n]])
+        dl_dbout = np.sum(dl_dSout, 1, keepdims=True)
+        assert dl_dbout.shape == (output_layer_size, 1)
+        assert dl_dbout.shape == bout.shape
 
-            dSout_dWout = Xhidden[:, [n]]
+        dl_dXhidden = Wout.dot(dl_dSout)
+        assert dl_dXhidden.shape == (hidden_layer_size, N)
 
-            dl_dSout = dl_dXout.T.dot(dXout_dSout)
+        dl_dShidden = dl_dXhidden * drelu(dl_dXhidden)
+        assert dl_dShidden.shape == (hidden_layer_size, N)
 
-            # dl_dWout = 1.0 / N * (dl_dSout).dot(dSout_dWout.T)
-            dl_dWout = dSout_dWout.dot(dl_dSout)
-            assert dl_dWout.shape == Wout.shape
+        dl_dWhidden = trainData.dot(dl_dShidden.T)
+        assert dl_dWhidden.shape == (input_layer_size, hidden_layer_size)
+        assert dl_dWhidden.shape == Whidden.shape
 
-            # dl_dbout = np.mean(dl_dSout, 1, keepdims=True)
-            dl_dbout = dl_dSout.T
-            assert dl_dbout.shape == bout.shape
-
-            dSout_dXhidden = Wout
-            dXhidden_dShidden = drelu(Shidden[:, [n]])
-
-            dl_dShidden = dSout_dXhidden.dot(dl_dSout.T) * dXhidden_dShidden
-
-            dShidden_dWhidden = trainData[:, [n]]
-            # dl_dWhidden = 1.0 / N * (dl_dShidden).dot(dShidden_dWhidden.T)
-            dl_dWhidden = dShidden_dWhidden.dot(dl_dShidden.T)
-            assert dl_dWhidden.shape == Whidden.shape
-
-            # dl_dbhidden = np.mean(dl_dShidden, 1, keepdims=True)
-            dl_dbhidden = dl_dShidden
-            assert dl_dbhidden.shape == bhidden.shape
-
-            dl_dWhidden_list.append(dl_dWhidden)
-            dl_dbhidden_list.append(dl_dbhidden)
-            dl_dWout_list.append(dl_dWout)
-            dl_dbout_list.append(dl_dbout)
-
-        dl_dWhidden = np.mean(dl_dWhidden_list, 0)
-        dl_dbhidden = np.mean(dl_dbhidden_list, 0)
-        dl_dWout = np.mean(dl_dWout_list, 0)
-        dl_dbout = np.mean(dl_dbout_list, 0)
-
-        gamma = 0.99
-        alpha = 1.0e-5
+        dl_dbhidden = np.sum(dl_dShidden, 1, keepdims=True)
+        assert dl_dbhidden.shape == (hidden_layer_size, 1)
+        assert dl_dbhidden.shape == bhidden.shape
 
         Whidden_v_new = gamma * Whidden_v_old + alpha * dl_dWhidden
         bhidden_v_new = gamma * bhidden_v_old + alpha * dl_dbhidden
@@ -311,12 +330,13 @@ if __name__ == '__main__':
         Wout_v_old = Wout_v_new
         bout_v_old = bout_v_new
 
-    print((time.perf_counter() - tt) * 1.0 / n_epoches, 'seconds per iter')
+        print((time.perf_counter() - tt) * 1.0 / (i+1), 'seconds per iter')
 
 
 # from line_profiler import LineProfiler
 # lp = LineProfiler()
 # lp.add_function(computeLayer)
+# lp.add_function(dsoftmax)
 # lp_wrapper = lp(main)
 # lp_wrapper()
 # lp.print_stats()
