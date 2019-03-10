@@ -176,7 +176,7 @@ def CE(target, prediction):
     # tlogs = t * logs
     tlogs = np.zeros_like(t)
     tlogs[t == 1] = np.log(s[t == 1])
-    print(tlogs.min())
+    # print(tlogs.min())
 
     averagece = - 1.0 / N * np.sum(tlogs)
     averagece = float(averagece)
@@ -312,13 +312,17 @@ if __name__ == '__main__':
     Wout_v_old = np.zeros_like(Wout)
     bout_v_old = np.zeros_like(bout)
 
-    tt = time.perf_counter()
-    gamma = 0.5
-    alpha = 0.1
+    gamma = 0.99
+    alpha = 0.0003
 
     #%% Training
     n_epoches = 200
     results = []
+
+    fig, ax = plt.subplots(2, 1, sharex='col', figsize=(8, 6))
+    plt.ion()
+
+    tt = time.perf_counter()
     for i in range(n_epoches):
         # Forward pass
         Shidden, Xhidden, Sout, Xout, pred = forward(trainData, Whidden, bhidden, Wout, bout)
@@ -326,14 +330,39 @@ if __name__ == '__main__':
         accuracy = np.count_nonzero(pred == trainTarget) * 1.0 / trainTarget.size
 
         ce = CE(newtrain, Xout)
-        print(i, accuracy, ce)
 
         _, _, _, validxout, validpred = forward(validData, Whidden, bhidden, Wout, bout)
         validaccuracy = np.count_nonzero(validpred == validTarget) * 1.0 / validTarget.size
         validce = CE(newvalid, validxout)
-        print(i, validaccuracy, validce)
 
-        results.append((accuracy, ce, validaccuracy, validce))
+        _, _, _, testxout, testpred = forward(testData, Whidden, bhidden, Wout, bout)
+        testaccuracy = np.count_nonzero(testpred == testTarget) * 1.0 / testTarget.size
+        testce = CE(newvalid, validxout)
+
+        results.append((ce, validce, testce, accuracy, validaccuracy, testaccuracy))
+
+        if i % 3 == 0 or i == n_epoches - 1:
+            elapsed = time.perf_counter() - tt
+            per = elapsed / (i + 1)
+            print('\r', i, '/', n_epoches, '%d' % elapsed, '+', '%d' % (per * (n_epoches - i)), '(', per, ')', end='    \r')
+            ax[0].clear()
+            ax[0].plot(np.asarray(results)[:, 0:3])
+            ax[0].set_ylabel('Average Cross Entropy Loss')
+            ax[0].set_xlabel('Epoches')
+            ax[0].set_xlim([0, n_epoches])
+            ax[0].set_title('Hidden Layer Size = %d' % hidden_layer_size)
+            ax[0].legend(['Training', 'Validation', 'Testing'])
+            ax[0].grid(True)
+            ax[1].clear()
+            ax[1].plot(np.asarray(results)[:, 3:6])
+            ax[1].set_ylabel('Accuracy')
+            ax[1].set_xlabel('Epoches')
+            ax[1].set_ylim([0, 1])
+            ax[1].set_xlim([0, n_epoches])
+            ax[1].grid(True)
+
+            # fig.show()
+            fig.savefig('%d.tmp.png' % hidden_layer_size, dpi=75)
 
         # Back prop
         # dl_dXout = gradCE(newtrain, Xout)
@@ -375,15 +404,15 @@ if __name__ == '__main__':
         assert np.all(np.isfinite(dl_dWout))
         assert np.all(np.isfinite(dl_dbout))
 
-        Whidden_v_new = gamma * Whidden_v_old + (1-gamma) * dl_dWhidden
-        bhidden_v_new = gamma * bhidden_v_old + (1-gamma) * dl_dbhidden
-        Wout_v_new = gamma * Wout_v_old + (1-gamma) * dl_dWout
-        bout_v_new = gamma * bout_v_old + (1-gamma) * dl_dbout
+        Whidden_v_new = gamma * Whidden_v_old + alpha * dl_dWhidden
+        bhidden_v_new = gamma * bhidden_v_old + alpha * dl_dbhidden
+        Wout_v_new = gamma * Wout_v_old + alpha * dl_dWout
+        bout_v_new = gamma * bout_v_old + alpha * dl_dbout
 
-        Whidden -= alpha * Whidden_v_new
-        bhidden -= alpha * bhidden_v_new
-        Wout -= alpha * Wout_v_new
-        bout -= alpha * bout_v_new
+        Whidden -= Whidden_v_new
+        bhidden -= bhidden_v_new
+        Wout -= Wout_v_new
+        bout -= bout_v_new
 
         assert np.all(np.isfinite(Whidden))
         assert np.all(np.isfinite(bhidden))
@@ -395,19 +424,9 @@ if __name__ == '__main__':
         Wout_v_old = Wout_v_new
         bout_v_old = bout_v_new
 
-        print((time.perf_counter() - tt) * 1.0 / (i+1), 'seconds per iter')
-
-        if i % 20 == 0:
-            fig, ax = plt.subplots(2, 1)
-            ax[0].plot(np.asarray(results)[:, [0, 2]])
-            ax[1].plot(np.asarray(results)[:, [1, 3]])
-            fig.show()
-
-
-    fig, ax = plt.subplots(2, 1)
-    ax[0].plot(np.asarray(results)[:, [0,2]])
-    ax[1].plot(np.asarray(results)[:, [1,3]])
-    fig.show()
+    fig.savefig('%d.png' % hidden_layer_size, dpi=300)
+    fig.savefig('%d.pdf' % hidden_layer_size)
+    np.savetxt('%d.csv' % hidden_layer_size, results, fmt='%.12g', delimiter=',')
 
 # from line_profiler import LineProfiler
 # lp = LineProfiler()
