@@ -246,7 +246,12 @@ if __name__ == '__main__':
 
     # %% Initialize weights
     input_layer_size = trainData.shape[0]
-    hidden_layer_size = 500
+    import sys
+    try:
+        hidden_layer_size = int(sys.argv[1])
+    except Exception:
+        hidden_layer_size = 1000
+    print('hidden_layer_size =', hidden_layer_size)
     output_layer_size = newtrain.shape[0]
     N = trainTarget.size
 
@@ -261,8 +266,8 @@ if __name__ == '__main__':
     Wout_v_old = np.zeros_like(Wout)
     bout_v_old = np.zeros_like(bout)
 
-    gamma = 0.9
-    alpha = 0.01
+    gamma = 0.99
+    alpha = 0.005
 
     #%% Training
     n_epoches = 200
@@ -311,7 +316,7 @@ if __name__ == '__main__':
             ax[1].grid(True)
 
             # fig.show()
-            fig.savefig('%d.tmp.png' % hidden_layer_size, dpi=75)
+            fig.savefig('%d_%g_%g.tmp.png' % (hidden_layer_size, gamma, alpha), dpi=75)
 
         # Back prop
         # dl_dXout = gradCE(newtrain, Xout)
@@ -373,9 +378,11 @@ if __name__ == '__main__':
         Wout_v_old = Wout_v_new
         bout_v_old = bout_v_new
 
-    fig.savefig('%d.png' % hidden_layer_size, dpi=300)
-    fig.savefig('%d.pdf' % hidden_layer_size)
-    np.savetxt('%d.csv' % hidden_layer_size, results, fmt='%.12g', delimiter=',')
+    fig.savefig('%d_%g_%g.png' % (hidden_layer_size, gamma, alpha), dpi=300)
+    fig.savefig('%d_%g_%g.pdf' % (hidden_layer_size, gamma, alpha))
+    np.savetxt('%d_%g_%g.csv' % (hidden_layer_size, gamma, alpha), results, fmt='%.12g', delimiter=',')
+
+    print()
 
 # from line_profiler import LineProfiler
 # lp = LineProfiler()
