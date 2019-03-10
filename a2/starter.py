@@ -5,6 +5,8 @@ import time
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
+from matplotlib import pyplot as plt
+
 # Load the data
 def loadData():
     with np.load("notMNIST.npz") as data:
@@ -67,17 +69,18 @@ def softmax(x):
     """
     N = x.shape[1]
     # assert x.shape == (10, N)  # TODO: remove
-    x = x - np.max(x, 1, keepdims=True)  # Numerically stable version of softmax
+    x = x - np.max(x, 0, keepdims=True)  # Numerically stable version of softmax
 
     ex = np.exp(x)
-    assert not np.any(np.isnan(ex))
-    assert np.count_nonzero(ex) == ex.size
+    assert np.all(np.isfinite(ex))
+    # assert np.count_nonzero(ex) == ex.size
 
     denom = np.sum(ex, 0, keepdims=True)
     assert denom.shape == (1, N)
 
     ret = ex / denom
     assert ret.shape == x.shape
+    assert np.all(np.isfinite(ret))
 
     return ret
 
@@ -160,19 +163,24 @@ def CE(target, prediction):
     :param prediction:
     :return:
     """
-    t = np.atleast_2d(target)
-    s = np.atleast_2d(prediction)
+    t = np.asarray(target)
+    s = np.asarray(prediction)
     assert t.shape == s.shape
+    # assert tuple(np.sort(np.unique(t))) == (0, 1)
 
     K, N = t.shape
+    # print(N)
     # assert K == 10  # TODO: Remove
 
-    logs = np.log(s)
-    tlogs = t * logs
+    # logs = np.log(s)
+    # tlogs = t * logs
+    tlogs = np.zeros_like(t)
+    tlogs[t == 1] = np.log(s[t == 1])
+    print(tlogs.min())
 
     averagece = - 1.0 / N * np.sum(tlogs)
     averagece = float(averagece)
-    assert not np.isnan(averagece)
+    assert np.isfinite(averagece)
 
     return averagece
 
@@ -243,6 +251,12 @@ def forward(trainData, Whidden, bhidden, Wout, bout):
     Xhidden = relu(Shidden)
     Sout = computeLayer(Xhidden, Wout, bout)
     Xout = softmax(Sout)
+
+    assert np.all(np.isfinite(Shidden))
+    assert np.all(np.isfinite(Xhidden))
+    assert np.all(np.isfinite(Sout))
+    assert np.all(np.isfinite(Xout))
+
     # assert Xout.shape == newtrain.shape
     # Accuracy and loss calculation
     pred = np.argmax(Xout, 0)
@@ -254,6 +268,13 @@ if __name__ == '__main__':
     #%% Initialize dataset
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
 
+    # trainData = trainData[trainTarget < 4, :]
+    # validData = validData[validTarget < 4, :]
+    # testData = testData[testTarget < 4, :]
+    # trainTarget = trainTarget[trainTarget < 4]
+    # validTarget = validTarget[validTarget < 4]
+    # testTarget = testTarget[testTarget < 4]
+
     trainData = trainData.reshape((trainData.shape[0], -1)).T - 0.5
     validData = validData.reshape((validData.shape[0], -1)).T - 0.5
     testData = testData.reshape((testData.shape[0], -1)).T - 0.5
@@ -264,13 +285,23 @@ if __name__ == '__main__':
     newvalid = newvalid.T
     newtest = newtest.T
 
+    # trainTarget = trainTarget[0:1000]
+    # validTarget = validTarget[0:1000]
+    # testTarget = testTarget[0:1000]
+    # trainData = trainData[:, 0:1000]
+    # validData = validData[:, 0:1000]
+    # testData = testData[:, 0:1000]
+    # newtrain = newtrain[:, 0:1000]
+    # newvalid = newvalid[:, 0:1000]
+    # newtest = newtest[:, 0:1000]
+
     # %% Initialize weights
     input_layer_size = trainData.shape[0]
     hidden_layer_size = 500
     output_layer_size = newtrain.shape[0]
     N = trainTarget.size
 
-    ran = np.random.RandomState(0)
+    ran = np.random.RandomState(421)
     Whidden = ran.normal(0.0, np.sqrt(2.0 / (input_layer_size + hidden_layer_size)), (input_layer_size, hidden_layer_size))
     bhidden = np.zeros((hidden_layer_size, 1))
     Wout = ran.normal(0.0, np.sqrt(2.0 / (hidden_layer_size + output_layer_size)), (hidden_layer_size, output_layer_size))
@@ -282,8 +313,8 @@ if __name__ == '__main__':
     bout_v_old = np.zeros_like(bout)
 
     tt = time.perf_counter()
-    gamma = 0.99
-    alpha = 0.0001
+    gamma = 0.5
+    alpha = 0.1
 
     #%% Training
     n_epoches = 200
@@ -339,15 +370,25 @@ if __name__ == '__main__':
         assert dl_dbhidden.shape == (hidden_layer_size, 1)
         assert dl_dbhidden.shape == bhidden.shape
 
-        Whidden_v_new = gamma * Whidden_v_old + alpha * dl_dWhidden
-        bhidden_v_new = gamma * bhidden_v_old + alpha * dl_dbhidden
-        Wout_v_new = gamma * Wout_v_old + alpha * dl_dWout
-        bout_v_new = gamma * bout_v_old + alpha * dl_dbout
+        assert np.all(np.isfinite(dl_dWhidden))
+        assert np.all(np.isfinite(dl_dbhidden))
+        assert np.all(np.isfinite(dl_dWout))
+        assert np.all(np.isfinite(dl_dbout))
 
-        Whidden -= Whidden_v_new
-        bhidden -= bhidden_v_new
-        Wout -= Wout_v_new
-        bout -= bout_v_new
+        Whidden_v_new = gamma * Whidden_v_old + (1-gamma) * dl_dWhidden
+        bhidden_v_new = gamma * bhidden_v_old + (1-gamma) * dl_dbhidden
+        Wout_v_new = gamma * Wout_v_old + (1-gamma) * dl_dWout
+        bout_v_new = gamma * bout_v_old + (1-gamma) * dl_dbout
+
+        Whidden -= alpha * Whidden_v_new
+        bhidden -= alpha * bhidden_v_new
+        Wout -= alpha * Wout_v_new
+        bout -= alpha * bout_v_new
+
+        assert np.all(np.isfinite(Whidden))
+        assert np.all(np.isfinite(bhidden))
+        assert np.all(np.isfinite(Wout))
+        assert np.all(np.isfinite(bout))
 
         Whidden_v_old = Whidden_v_new
         bhidden_v_old = bhidden_v_new
@@ -356,7 +397,13 @@ if __name__ == '__main__':
 
         print((time.perf_counter() - tt) * 1.0 / (i+1), 'seconds per iter')
 
-    from matplotlib import pyplot as plt
+        if i % 20 == 0:
+            fig, ax = plt.subplots(2, 1)
+            ax[0].plot(np.asarray(results)[:, [0, 2]])
+            ax[1].plot(np.asarray(results)[:, [1, 3]])
+            fig.show()
+
+
     fig, ax = plt.subplots(2, 1)
     ax[0].plot(np.asarray(results)[:, [0,2]])
     ax[1].plot(np.asarray(results)[:, [1,3]])
