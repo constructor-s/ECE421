@@ -266,7 +266,7 @@ if __name__ == '__main__':
 
     # %% Initialize weights
     input_layer_size = trainData.shape[0]
-    hidden_layer_size = 1000
+    hidden_layer_size = 500
     output_layer_size = newtrain.shape[0]
     N = trainTarget.size
 
@@ -283,7 +283,7 @@ if __name__ == '__main__':
 
     tt = time.perf_counter()
     gamma = 0.99
-    alpha = 0.0005
+    alpha = 0.0001
 
     #%% Training
     n_epoches = 200
@@ -328,7 +328,7 @@ if __name__ == '__main__':
         # assert dl_dXhidden.shape == (hidden_layer_size, N)
         #
         # dl_dShidden = dl_dXhidden * drelu(dl_dXhidden)
-        dl_dShidden = np.where(Xhidden > 0, Wout.dot(dl_dSout), 0)
+        dl_dShidden = np.where(Shidden > 0, Wout.dot(dl_dSout), 0)
         assert dl_dShidden.shape == (hidden_layer_size, N)
 
         dl_dWhidden = trainData.dot(dl_dShidden.T)
@@ -356,6 +356,11 @@ if __name__ == '__main__':
 
         print((time.perf_counter() - tt) * 1.0 / (i+1), 'seconds per iter')
 
+    from matplotlib import pyplot as plt
+    fig, ax = plt.subplots(2, 1)
+    ax[0].plot(np.asarray(results)[:, [0,2]])
+    ax[1].plot(np.asarray(results)[:, [1,3]])
+    fig.show()
 
 # from line_profiler import LineProfiler
 # lp = LineProfiler()
