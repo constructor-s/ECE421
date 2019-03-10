@@ -51,7 +51,6 @@ def relu(x):
     190 µs ± 2.78 µs per loop (mean ± std. dev. of 7 runs, 1000 loops each)
     >>> %timeit np.maximum(x, 0)
     983 µs ± 5.81 µs per loop (mean ± std. dev. of 7 runs, 1000 loops each)
-
     :param x:
     :return:
     """
@@ -62,7 +61,6 @@ def drelu(x):
 
 def softmax(x):
     """
-
     :param x:
     :return:
     """
@@ -80,7 +78,6 @@ def dsoftmax(y):
 
 def computeLayer(X, W, b):
     """
-
     :param X: input, m_in x N
     :param W: weight, m_in x n_out
     :param b: bias, n_out x N
@@ -108,7 +105,6 @@ def computeLayer(X, W, b):
 
 def CE(target, prediction):
     """
-
     :param target:
     :param prediction:
     :return:
@@ -129,7 +125,6 @@ def CE(target, prediction):
 
 def gradCE(target, prediction):
     """
-
     :param target:
     :param prediction:
     :return:
@@ -146,6 +141,50 @@ def gradCE(target, prediction):
 
     return ret
 
+def nn(x, weights, biases, dropout):
+
+    #x = tf.reshape(x, shape=[-1, 28, 28, 1])
+
+    # Convolution Layer
+    conv = tf.nn.conv2d(x, W, filter = [1,1,3,32] , strides=[1, 1], padding='SAME') #RGB:3??
+    re_lu = tf.nn.relu(x)
+    
+    #batch normalization
+        #offset: often denoted beta in equations
+        #scale: often denoted gamma in equations
+        #variance_epsilon: a small float number to avoid dividing by 0
+    tf.nn.batch_normalization(x, mean, variance, offset, scale, variance_epsilon, name=None)    
+    
+    # Max Pooling
+    conv = maxpool2d(conv, k=2)
+    
+    #flatten layer
+    conv_ft = tf.layers.flatten(conv)
+    
+    # Fully connected layer
+    W1 = tf.get_variable("weights1", shape=[784, 10], initializer=tf.glorot_uniform_initializer())
+    b1 = tf.get_variable("bias1", shape=[10], initializer=tf.constant_initializer(0.1))
+    
+    x_drop = tf.nn.dropout(x, dropout)
+    fc1 = tf.nn.relu(tf.matmul(x_drop, W1) + b1)
+    
+    W2 = tf.get_variable("weights2", shape=[10, 10], initializer=tf.glorot_uniform_initializer())                
+    b2 = tf.get_variable("bias2", shape=[10], initializer=tf.constant_initializer(0.1))
+    
+    # Apply Dropout
+    fc1_drop = tf.nn.dropout(fc1, dropout)
+    fc2 = tf.nn.relu(tf.matmul(fc1_drop,W2) + b2)
+    
+    #logits = tf.nn.relu(tf.matmul(x, W) + b)
+    #labels = tf.placeholder(tf.float32, [None, 10])
+    
+    #cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels)
+
+    # Output, class prediction
+    out = tf.add(tf.matmul(fc1, weights['out']), biases['out'])
+    return out        
+    
+    
 
 if __name__ == '__main__':
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
