@@ -5,8 +5,6 @@ import time
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-from matplotlib import pyplot as plt
-
 # Load the data
 def loadData():
     with np.load("notMNIST.npz") as data:
@@ -83,55 +81,6 @@ def softmax(x):
     assert np.all(np.isfinite(ret))
 
     return ret
-
-# def dsoftmax(y):
-#     """
-#
-#     :param y: = softmax(x)
-#     :return:
-#     """
-#     assert np.all(y > 0)
-#     assert np.all(y < 1)
-#
-#     N = y.shape[1]
-#     m = 10  # TODO: remove
-#     assert y.shape == (m, N)
-#
-#     # def softmax_jacob(yy):
-#     #     # yy = np.asarray(yy)
-#     #     # assert np.squeeze(yy).ndim == 1
-#     #     m = yy.size
-#     #     ret = np.where(np.eye(m, m, dtype=np.bool), yy * (1 - yy), yy.reshape((m, 1)).dot(yy.reshape((1, m))))
-#     #     # ret = np.eye(m, m) * (yy * (1-yy)) + (1 - np.eye(m, m)) * yy.reshape((m, 1)).dot(yy.reshape((1, m)))
-#     #     # assert np.allclose(ret, np.eye(m, m) * (yy * (1-yy)) + (1 - np.eye(m, m)) * yy.reshape((m, 1)).dot(yy.reshape((1, m))))
-#     #     return ret
-#     #
-#     # ret0 = np.apply_along_axis(softmax_jacob, axis=0, arr=y)
-#
-#     ret = np.einsum('ik,jk->ijk', -y, y)
-#     assert ret.shape == (m, m, N)
-#
-#     # for i in range(N):
-#     #     np.fill_diagonal(ret[:, :, i], y[:, i] * (1 - y[:, i]))
-#
-#     diag = np.einsum('ik,jk->ijk', y, 1 - y)
-#
-#     mask = np.moveaxis(np.tile(np.eye(m, dtype=np.bool), (N, 1, 1)), 0, 2)
-#     assert mask.shape == diag.shape
-#
-#     ret = np.where(mask, diag, ret)
-#
-#     # assert np.allclose(ret0, ret)
-#
-#     # m, N = y.shape
-#     # assert m == 10
-#     #
-#     # ret = [np.eye(m, m) * (yy * (1-yy)) + (1 - np.eye(m, m)) * yy.reshape((m, 1)).dot(yy.reshape((1, m))) for yy in y.T]
-#     # ret = np.asarray(ret)
-#
-#     # ret = np.eye(m, m) * (y * (1-y)) + (1 - np.eye(m, m)) * y.dot(y.T)
-#
-#     return ret
 
 def computeLayer(X, W, b):
     """
@@ -281,232 +230,240 @@ def forward(trainData, Whidden, bhidden, Wout, bout):
     
     
 if __name__ == '__main__':
-# def main():
-    #%% Initialize dataset
-    trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
+    run_part_1 = False
+    run_part_2 = True
 
-    # trainData = trainData[trainTarget < 4, :]
-    # validData = validData[validTarget < 4, :]
-    # testData = testData[testTarget < 4, :]
-    # trainTarget = trainTarget[trainTarget < 4]
-    # validTarget = validTarget[validTarget < 4]
-    # testTarget = testTarget[testTarget < 4]
+    if run_part_1:
+        #%% Initialize dataset
+        trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
 
-    trainData = trainData.reshape((trainData.shape[0], -1)).T - 0.5
-    validData = validData.reshape((validData.shape[0], -1)).T - 0.5
-    testData = testData.reshape((testData.shape[0], -1)).T - 0.5
+        # trainData = trainData[trainTarget < 4, :]
+        # validData = validData[validTarget < 4, :]
+        # testData = testData[testTarget < 4, :]
+        # trainTarget = trainTarget[trainTarget < 4]
+        # validTarget = validTarget[validTarget < 4]
+        # testTarget = testTarget[testTarget < 4]
 
-    newtrain, newvalid, newtest = convertOneHot(trainTarget, validTarget, testTarget)
+        trainData = trainData.reshape((trainData.shape[0], -1)).T - 0.5
+        validData = validData.reshape((validData.shape[0], -1)).T - 0.5
+        testData = testData.reshape((testData.shape[0], -1)).T - 0.5
 
-    newtrain = newtrain.T
-    newvalid = newvalid.T
-    newtest = newtest.T
+        newtrain, newvalid, newtest = convertOneHot(trainTarget, validTarget, testTarget)
 
-    # trainTarget = trainTarget[0:1000]
-    # validTarget = validTarget[0:1000]
-    # testTarget = testTarget[0:1000]
-    # trainData = trainData[:, 0:1000]
-    # validData = validData[:, 0:1000]
-    # testData = testData[:, 0:1000]
-    # newtrain = newtrain[:, 0:1000]
-    # newvalid = newvalid[:, 0:1000]
-    # newtest = newtest[:, 0:1000]
+        newtrain = newtrain.T
+        newvalid = newvalid.T
+        newtest = newtest.T
 
-    # %% Initialize weights
-    input_layer_size = trainData.shape[0]
-    hidden_layer_size = 500
-    output_layer_size = newtrain.shape[0]
-    N = trainTarget.size
+        # trainTarget = trainTarget[0:1000]
+        # validTarget = validTarget[0:1000]
+        # testTarget = testTarget[0:1000]
+        # trainData = trainData[:, 0:1000]
+        # validData = validData[:, 0:1000]
+        # testData = testData[:, 0:1000]
+        # newtrain = newtrain[:, 0:1000]
+        # newvalid = newvalid[:, 0:1000]
+        # newtest = newtest[:, 0:1000]
 
-    ran = np.random.RandomState(421)
-    Whidden = ran.normal(0.0, np.sqrt(2.0 / (input_layer_size + hidden_layer_size)), (input_layer_size, hidden_layer_size))
-    bhidden = np.zeros((hidden_layer_size, 1))
-    Wout = ran.normal(0.0, np.sqrt(2.0 / (hidden_layer_size + output_layer_size)), (hidden_layer_size, output_layer_size))
-    bout = np.zeros((output_layer_size, 1))
+        # %% Initialize weights
+        input_layer_size = trainData.shape[0]
+    import sys
+    try:
+        hidden_layer_size = int(sys.argv[1])
+    except Exception:
+        hidden_layer_size = 1000
+        print('hidden_layer_size =', hidden_layer_size)
+        output_layer_size = newtrain.shape[0]
+        N = trainTarget.size
 
-    Whidden_v_old = np.zeros_like(Whidden)
-    bhidden_v_old = np.zeros_like(bhidden)
-    Wout_v_old = np.zeros_like(Wout)
-    bout_v_old = np.zeros_like(bout)
+        ran = np.random.RandomState(421)
+        Whidden = ran.normal(0.0, np.sqrt(2.0 / (input_layer_size + hidden_layer_size)), (input_layer_size, hidden_layer_size))
+        bhidden = np.zeros((hidden_layer_size, 1))
+        Wout = ran.normal(0.0, np.sqrt(2.0 / (hidden_layer_size + output_layer_size)), (hidden_layer_size, output_layer_size))
+        bout = np.zeros((output_layer_size, 1))
 
-    gamma = 0.99
-    alpha = 0.0003
+        Whidden_v_old = np.zeros_like(Whidden)
+        bhidden_v_old = np.zeros_like(bhidden)
+        Wout_v_old = np.zeros_like(Wout)
+        bout_v_old = np.zeros_like(bout)
 
-    #%% Training
-    n_epoches = 200
-    results = []
+        gamma = 0.99
+        alpha = 0.005
 
-    fig, ax = plt.subplots(2, 1, sharex='col', figsize=(8, 6))
-    plt.ion()
+        #%% Training
+        n_epoches = 200
+        results = []
 
-    tt = time.perf_counter()
-    for i in range(n_epoches):
-        # Forward pass
-        Shidden, Xhidden, Sout, Xout, pred = forward(trainData, Whidden, bhidden, Wout, bout)
-        assert pred.shape == trainTarget.shape
-        accuracy = np.count_nonzero(pred == trainTarget) * 1.0 / trainTarget.size
+        fig, ax = plt.subplots(2, 1, sharex='col', figsize=(8, 6))
+        plt.ion()
 
-        ce = CE(newtrain, Xout)
+        tt = time.perf_counter()
+        for i in range(n_epoches):
+            # Forward pass
+            Shidden, Xhidden, Sout, Xout, pred = forward(trainData, Whidden, bhidden, Wout, bout)
+            assert pred.shape == trainTarget.shape
+            accuracy = np.count_nonzero(pred == trainTarget) * 1.0 / trainTarget.size
 
-        _, _, _, validxout, validpred = forward(validData, Whidden, bhidden, Wout, bout)
-        validaccuracy = np.count_nonzero(validpred == validTarget) * 1.0 / validTarget.size
-        validce = CE(newvalid, validxout)
+            ce = CE(newtrain, Xout)
 
-        _, _, _, testxout, testpred = forward(testData, Whidden, bhidden, Wout, bout)
-        testaccuracy = np.count_nonzero(testpred == testTarget) * 1.0 / testTarget.size
-        testce = CE(newvalid, validxout)
+            _, _, _, validxout, validpred = forward(validData, Whidden, bhidden, Wout, bout)
+            validaccuracy = np.count_nonzero(validpred == validTarget) * 1.0 / validTarget.size
+            validce = CE(newvalid, validxout)
 
-        results.append((ce, validce, testce, accuracy, validaccuracy, testaccuracy))
+            _, _, _, testxout, testpred = forward(testData, Whidden, bhidden, Wout, bout)
+            testaccuracy = np.count_nonzero(testpred == testTarget) * 1.0 / testTarget.size
+            testce = CE(newvalid, validxout)
 
-        if i % 3 == 0 or i == n_epoches - 1:
-            elapsed = time.perf_counter() - tt
-            per = elapsed / (i + 1)
-            print('\r', i, '/', n_epoches, '%d' % elapsed, '+', '%d' % (per * (n_epoches - i)), '(', per, ')', end='    \r')
-            ax[0].clear()
-            ax[0].plot(np.asarray(results)[:, 0:3])
-            ax[0].set_ylabel('Average Cross Entropy Loss')
-            ax[0].set_xlabel('Epoches')
-            ax[0].set_xlim([0, n_epoches])
-            ax[0].set_title('Hidden Layer Size = %d' % hidden_layer_size)
-            ax[0].legend(['Training', 'Validation', 'Testing'])
-            ax[0].grid(True)
-            ax[1].clear()
-            ax[1].plot(np.asarray(results)[:, 3:6])
-            ax[1].set_ylabel('Accuracy')
-            ax[1].set_xlabel('Epoches')
-            ax[1].set_ylim([0, 1])
-            ax[1].set_xlim([0, n_epoches])
-            ax[1].grid(True)
+            results.append((ce, validce, testce, accuracy, validaccuracy, testaccuracy))
 
-            # fig.show()
-            fig.savefig('%d.tmp.png' % hidden_layer_size, dpi=75)
+            if i % 3 == 0 or i == n_epoches - 1:
+                elapsed = time.perf_counter() - tt
+                per = elapsed / (i + 1)
+            print('\r', i, '/', ','.join(['%.2f' % i for i in results[-1]]), n_epoches, '%d' % elapsed, '+', '%d' % (per * (n_epoches - i)), '(', per, ')', end='    \r')
+                ax[0].clear()
+                ax[0].plot(np.asarray(results)[:, 0:3])
+                ax[0].set_ylabel('Average Cross Entropy Loss')
+                ax[0].set_xlabel('Epoches')
+                ax[0].set_xlim([0, n_epoches])
+                ax[0].set_title('Hidden Layer Size = %d' % hidden_layer_size)
+                ax[0].legend(['Training', 'Validation', 'Testing'])
+                ax[0].grid(True)
+                ax[1].clear()
+                ax[1].plot(np.asarray(results)[:, 3:6])
+                ax[1].set_ylabel('Accuracy')
+                ax[1].set_xlabel('Epoches')
+                ax[1].set_ylim([0, 1])
+                ax[1].set_xlim([0, n_epoches])
+                ax[1].grid(True)
 
-        # Back prop
-        # dl_dXout = gradCE(newtrain, Xout)
-        # assert dl_dXout.shape == (output_layer_size, N)
-        #
-        # dXout_dSout = dsoftmax(Xout)
-        # assert dXout_dSout.shape == (output_layer_size, output_layer_size, N)
-        #
-        # dl_dSout = np.einsum('ijk,jk->ik', dXout_dSout, dl_dXout)
-        dl_dSout = 1.0 / N * np.where(newtrain, Xout - 1, Xout)
-        assert dl_dSout.shape == (output_layer_size, N)
+                # fig.show()
+            fig.savefig('%d_%g_%g.tmp.png' % (hidden_layer_size, gamma, alpha), dpi=75)
 
-        dl_dWout = Xhidden.dot(dl_dSout.T)
-        assert dl_dWout.shape == (hidden_layer_size, output_layer_size)
-        assert dl_dWout.shape == Wout.shape
+            # Back prop
+            # dl_dXout = gradCE(newtrain, Xout)
+            # assert dl_dXout.shape == (output_layer_size, N)
+            #
+            # dXout_dSout = dsoftmax(Xout)
+            # assert dXout_dSout.shape == (output_layer_size, output_layer_size, N)
+            #
+            # dl_dSout = np.einsum('ijk,jk->ik', dXout_dSout, dl_dXout)
+            dl_dSout = 1.0 / N * np.where(newtrain, Xout - 1, Xout)
+            assert dl_dSout.shape == (output_layer_size, N)
 
-        dl_dbout = np.sum(dl_dSout, 1, keepdims=True)
-        assert dl_dbout.shape == (output_layer_size, 1)
-        assert dl_dbout.shape == bout.shape
+            dl_dWout = Xhidden.dot(dl_dSout.T)
+            assert dl_dWout.shape == (hidden_layer_size, output_layer_size)
+            assert dl_dWout.shape == Wout.shape
+
+            dl_dbout = np.sum(dl_dSout, 1, keepdims=True)
+            assert dl_dbout.shape == (output_layer_size, 1)
+            assert dl_dbout.shape == bout.shape
 
 
-        # dl_dXhidden = Wout.dot(dl_dSout)
-        # assert dl_dXhidden.shape == (hidden_layer_size, N)
-        #
-        # dl_dShidden = dl_dXhidden * drelu(dl_dXhidden)
-        dl_dShidden = np.where(Shidden > 0, Wout.dot(dl_dSout), 0)
-        assert dl_dShidden.shape == (hidden_layer_size, N)
+            # dl_dXhidden = Wout.dot(dl_dSout)
+            # assert dl_dXhidden.shape == (hidden_layer_size, N)
+            #
+            # dl_dShidden = dl_dXhidden * drelu(dl_dXhidden)
+            dl_dShidden = np.where(Shidden > 0, Wout.dot(dl_dSout), 0)
+            assert dl_dShidden.shape == (hidden_layer_size, N)
 
-        dl_dWhidden = trainData.dot(dl_dShidden.T)
-        assert dl_dWhidden.shape == (input_layer_size, hidden_layer_size)
-        assert dl_dWhidden.shape == Whidden.shape
+            dl_dWhidden = trainData.dot(dl_dShidden.T)
+            assert dl_dWhidden.shape == (input_layer_size, hidden_layer_size)
+            assert dl_dWhidden.shape == Whidden.shape
 
-        dl_dbhidden = np.sum(dl_dShidden, 1, keepdims=True)
-        assert dl_dbhidden.shape == (hidden_layer_size, 1)
-        assert dl_dbhidden.shape == bhidden.shape
+            dl_dbhidden = np.sum(dl_dShidden, 1, keepdims=True)
+            assert dl_dbhidden.shape == (hidden_layer_size, 1)
+            assert dl_dbhidden.shape == bhidden.shape
 
-        assert np.all(np.isfinite(dl_dWhidden))
-        assert np.all(np.isfinite(dl_dbhidden))
-        assert np.all(np.isfinite(dl_dWout))
-        assert np.all(np.isfinite(dl_dbout))
+            assert np.all(np.isfinite(dl_dWhidden))
+            assert np.all(np.isfinite(dl_dbhidden))
+            assert np.all(np.isfinite(dl_dWout))
+            assert np.all(np.isfinite(dl_dbout))
 
-        Whidden_v_new = gamma * Whidden_v_old + alpha * dl_dWhidden
-        bhidden_v_new = gamma * bhidden_v_old + alpha * dl_dbhidden
-        Wout_v_new = gamma * Wout_v_old + alpha * dl_dWout
-        bout_v_new = gamma * bout_v_old + alpha * dl_dbout
+            Whidden_v_new = gamma * Whidden_v_old + alpha * dl_dWhidden
+            bhidden_v_new = gamma * bhidden_v_old + alpha * dl_dbhidden
+            Wout_v_new = gamma * Wout_v_old + alpha * dl_dWout
+            bout_v_new = gamma * bout_v_old + alpha * dl_dbout
 
-        Whidden -= Whidden_v_new
-        bhidden -= bhidden_v_new
-        Wout -= Wout_v_new
-        bout -= bout_v_new
+            Whidden -= Whidden_v_new
+            bhidden -= bhidden_v_new
+            Wout -= Wout_v_new
+            bout -= bout_v_new
 
-        assert np.all(np.isfinite(Whidden))
-        assert np.all(np.isfinite(bhidden))
-        assert np.all(np.isfinite(Wout))
-        assert np.all(np.isfinite(bout))
+            assert np.all(np.isfinite(Whidden))
+            assert np.all(np.isfinite(bhidden))
+            assert np.all(np.isfinite(Wout))
+            assert np.all(np.isfinite(bout))
 
-        Whidden_v_old = Whidden_v_new
-        bhidden_v_old = bhidden_v_new
-        Wout_v_old = Wout_v_new
-        bout_v_old = bout_v_new
+            Whidden_v_old = Whidden_v_new
+            bhidden_v_old = bhidden_v_new
+            Wout_v_old = Wout_v_new
+            bout_v_old = bout_v_new
 
-    fig.savefig('%d.png' % hidden_layer_size, dpi=300)
-    fig.savefig('%d.pdf' % hidden_layer_size)
-    np.savetxt('%d.csv' % hidden_layer_size, results, fmt='%.12g', delimiter=',')
+        fig.savefig('%d_%g_%g.png' % (hidden_layer_size, gamma, alpha), dpi=300)
+        fig.savefig('%d_%g_%g.pdf' % (hidden_layer_size, gamma, alpha))
+        np.savetxt('%d_%g_%g.csv' % (hidden_layer_size, gamma, alpha), results, fmt='%.12g', delimiter=',')
 
-#%% neural network training
-if tf_epochs:
-     def tf_train(learning_rate=0.001, stddev=0.5, 
-               batch_size=500, lambd_val=0, tf_epochs=tf_epochs):   
-    
-        optimizer, W, b, y, yhat = nn_layers(n_class = 10, lr=learning_rate, stddev=stddev)
-        
-        # Dictionary to feed in for reporting
-        train_dict = {x: trainDataVec,
-                      y: trainTarget.T,
-                      lambd: ((lambd_val,),)}
-        valid_dict = {x: validDataVec,
-                      y: validTarget.T,
-                      lambd: ((lambd_val,),)}
-        test_dict = {x: testDataVec,
-                     y: testTarget.T,
-                     lambd: ((lambd_val,),)}
-        
-        results = []   
-    
-        rand = np.random.RandomState(421)
-        init = tf.global_variables_initializer()
-        with tf.Session() as sess:
-            sess.run(init)
-                    
-            print('iter', 'train_loss', 'valid_loss', 'test_loss', 'train_acc', 'valid_acc', 'test_acc', sep='\t')
-            for i in range(tf_epochs):
-                # Record losses and accuracy
-                valid_loss, valid_yhat = sess.run([
-                        loss, yhat
-                        ], feed_dict=valid_dict)
-                valid_acc = np.count_nonzero((valid_yhat > 0.5) == validTarget.T) / validTarget.size
-                
-                test_loss, test_yhat = sess.run([
-                        loss, yhat
-                        ], feed_dict=test_dict)
-                test_acc = np.count_nonzero((test_yhat > 0.5) == testTarget.T) / testTarget.size
-                
-                train_loss, train_yhat = sess.run([
-                        loss, yhat
-                        ], feed_dict=train_dict)
-                train_acc = np.count_nonzero((train_yhat > 0.5) == trainTarget.T) / trainTarget.size
-                
-                results.append(
-                        (train_loss, valid_loss, test_loss, train_acc, valid_acc, test_acc)
-                        )
-                
-                if i % 100 == 0 or i == tf_epochs-1:
-                        print('%d' % i, '%.3f' % train_loss, '%.3f' % valid_loss, '%.3f' % test_loss,
-                                          '%.3f' % train_acc, '%.3f' % valid_acc, '%.3f' % test_acc,
-                                            sep='\t')
-                    
-                    # Minibatch
-                    perm = rand.permutation(trainDataVec.shape[1])
-                    for start in range(0, trainDataVec.shape[1], batch_size):
-                        chunk = (slice(None, None), perm[start:start+batch_size])
-                        sess.run(optimizer, feed_dict={x: trainDataVec[chunk],
-                                                       y: trainTarget.T[chunk],
-                                                       lambd: ((lambd_val,),)})
-                    
-        print()                    
-        return np.array(results)
+    #%% neural network training
+    if run_part_2:
+         def tf_train(learning_rate=0.001, stddev=0.5,
+                   batch_size=500, lambd_val=0, tf_epochs=tf_epochs):
+
+            optimizer, W, b, y, yhat = nn_layers(n_class = 10, lr=learning_rate, stddev=stddev)
+
+            # Dictionary to feed in for reporting
+            train_dict = {x: trainDataVec,
+                          y: trainTarget.T,
+                          lambd: ((lambd_val,),)}
+            valid_dict = {x: validDataVec,
+                          y: validTarget.T,
+                          lambd: ((lambd_val,),)}
+            test_dict = {x: testDataVec,
+                         y: testTarget.T,
+                         lambd: ((lambd_val,),)}
+
+            results = []
+
+            rand = np.random.RandomState(421)
+            init = tf.global_variables_initializer()
+            with tf.Session() as sess:
+                sess.run(init)
+
+                print('iter', 'train_loss', 'valid_loss', 'test_loss', 'train_acc', 'valid_acc', 'test_acc', sep='\t')
+                for i in range(tf_epochs):
+                    # Record losses and accuracy
+                    valid_loss, valid_yhat = sess.run([
+                            loss, yhat
+                            ], feed_dict=valid_dict)
+                    valid_acc = np.count_nonzero((valid_yhat > 0.5) == validTarget.T) / validTarget.size
+
+                    test_loss, test_yhat = sess.run([
+                            loss, yhat
+                            ], feed_dict=test_dict)
+                    test_acc = np.count_nonzero((test_yhat > 0.5) == testTarget.T) / testTarget.size
+
+                    train_loss, train_yhat = sess.run([
+                            loss, yhat
+                            ], feed_dict=train_dict)
+                    train_acc = np.count_nonzero((train_yhat > 0.5) == trainTarget.T) / trainTarget.size
+
+                    results.append(
+                            (train_loss, valid_loss, test_loss, train_acc, valid_acc, test_acc)
+                            )
+
+                    if i % 100 == 0 or i == tf_epochs-1:
+                            print('%d' % i, '%.3f' % train_loss, '%.3f' % valid_loss, '%.3f' % test_loss,
+                                              '%.3f' % train_acc, '%.3f' % valid_acc, '%.3f' % test_acc,
+                                                sep='\t')
+
+                        # Minibatch
+                        perm = rand.permutation(trainDataVec.shape[1])
+                        for start in range(0, trainDataVec.shape[1], batch_size):
+                            chunk = (slice(None, None), perm[start:start+batch_size])
+                            sess.run(optimizer, feed_dict={x: trainDataVec[chunk],
+                                                           y: trainTarget.T[chunk],
+                                                           lambd: ((lambd_val,),)})
+
+            print()
+            return np.array(results)
     
 
 # from line_profiler import LineProfiler
