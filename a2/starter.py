@@ -5,6 +5,8 @@ import time
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
+import sys
+
 # Load the data
 def loadData():
     with np.load("notMNIST.npz") as data:
@@ -266,14 +268,13 @@ if __name__ == '__main__':
 
         # %% Initialize weights
         input_layer_size = trainData.shape[0]
-    import sys
-    try:
-        hidden_layer_size = int(sys.argv[1])
-    except Exception:
-        hidden_layer_size = 1000
-        print('hidden_layer_size =', hidden_layer_size)
-        output_layer_size = newtrain.shape[0]
-        N = trainTarget.size
+        try:
+            hidden_layer_size = int(sys.argv[1])
+        except Exception:
+            hidden_layer_size = 1000
+            print('hidden_layer_size =', hidden_layer_size)
+            output_layer_size = newtrain.shape[0]
+            N = trainTarget.size
 
         ran = np.random.RandomState(421)
         Whidden = ran.normal(0.0, np.sqrt(2.0 / (input_layer_size + hidden_layer_size)), (input_layer_size, hidden_layer_size))
@@ -318,7 +319,7 @@ if __name__ == '__main__':
             if i % 3 == 0 or i == n_epoches - 1:
                 elapsed = time.perf_counter() - tt
                 per = elapsed / (i + 1)
-            print('\r', i, '/', ','.join(['%.2f' % i for i in results[-1]]), n_epoches, '%d' % elapsed, '+', '%d' % (per * (n_epoches - i)), '(', per, ')', end='    \r')
+                print('\r', i, '/', ','.join(['%.2f' % i for i in results[-1]]), n_epoches, '%d' % elapsed, '+', '%d' % (per * (n_epoches - i)), '(', per, ')', end='    \r')
                 ax[0].clear()
                 ax[0].plot(np.asarray(results)[:, 0:3])
                 ax[0].set_ylabel('Average Cross Entropy Loss')
@@ -404,66 +405,130 @@ if __name__ == '__main__':
 
     #%% neural network training
     if run_part_2:
-         def tf_train(learning_rate=0.001, stddev=0.5,
-                   batch_size=500, lambd_val=0, tf_epochs=tf_epochs):
+        tf.set_random_seed(421)
 
-            optimizer, W, b, y, yhat = nn_layers(n_class = 10, lr=learning_rate, stddev=stddev)
+        # Model parameters (Variables)
+        w0 = tf.get_variable('w0', shape=(3, 3, 1, 32), initializer=tf.glorot_uniform_initializer())
+        w1 = tf.get_variable('w1', shape=(4 * 4 * 128, 128), initializer=tf.glorot_uniform_initializer())
+        w2 = tf.get_variable('w2', shape=(4 * 4 * 128, 128), initializer=tf.glorot_uniform_initializer())
+        w_out = tf.get_variable('w3', shape=(128, n_class), initializer=tf.glorot_uniform_initializer())
 
-            # Dictionary to feed in for reporting
-            train_dict = {x: trainDataVec,
-                          y: trainTarget.T,
-                          lambd: ((lambd_val,),)}
-            valid_dict = {x: validDataVec,
-                          y: validTarget.T,
-                          lambd: ((lambd_val,),)}
-            test_dict = {x: testDataVec,
-                         y: testTarget.T,
-                         lambd: ((lambd_val,),)}
+        b0 = tf.get_variable('B0', shape=(32), initializer=tf.contrib.layers.xavier_initializer())
+        b1 = tf.get_variable('B1', shape=(128), initializer=tf.contrib.layers.xavier_initializer())
+        b2 = tf.get_variable('B2', shape=(128), initializer=tf.contrib.layers.xavier_initializer())
+        b_out = tf.get_variable('B3', shape=(10), initializer=tf.contrib.layers.xavier_initializer())
 
-            results = []
+        W = [w0, w1, w2, w_out]
+        b = [b0, b1, b2, b_out]
+        # Data inputs (Placeholders)
+        x = tf.placeholder(
+            dtype=tf.float32,
+            shape=[None, 28, 28, 1],
+            name='data'
+        )
+        y = tf.placeholder(
+            dtype=tf.float32,
+            shape=[None, n_class],
+            name='label'
+        )
 
-            rand = np.random.RandomState(421)
-            init = tf.global_variables_initializer()
-            with tf.Session() as sess:
-                sess.run(init)
+        x = tf.reshape(x, shape=[-1, 28, 28, 1])  # 784 is 28 * 28 matrix
 
-                print('iter', 'train_loss', 'valid_loss', 'test_loss', 'train_acc', 'valid_acc', 'test_acc', sep='\t')
-                for i in range(tf_epochs):
-                    # Record losses and accuracy
-                    valid_loss, valid_yhat = sess.run([
-                            loss, yhat
-                            ], feed_dict=valid_dict)
-                    valid_acc = np.count_nonzero((valid_yhat > 0.5) == validTarget.T) / validTarget.size
+        # Convolution Layer
+        conv = tf.nn.conv2d(x, w0, filter=[1, 1, 3, 32], strides=[1, 1, 1, 1], padding='SAME')  # RGB:3??
+        conv = tf.nn.bias_add(conv, b0)
+        conv = tf.nn.relu(conv)
 
-                    test_loss, test_yhat = sess.run([
-                            loss, yhat
-                            ], feed_dict=test_dict)
-                    test_acc = np.count_nonzero((test_yhat > 0.5) == testTarget.T) / testTarget.size
+        # batch normalization
+        batch_norm = tf.nn.batch_normalization(conv)
 
-                    train_loss, train_yhat = sess.run([
-                            loss, yhat
-                            ], feed_dict=train_dict)
-                    train_acc = np.count_nonzero((train_yhat > 0.5) == trainTarget.T) / trainTarget.size
+        # Max Pooling
+        max_pool = tf.maxpool2d(batch_norm, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
-                    results.append(
-                            (train_loss, valid_loss, test_loss, train_acc, valid_acc, test_acc)
-                            )
+        # Fully connected layer
+        #    x_drop = tf.nn.dropout(x, dropout)
+        fc1 = tf.reshape(max_pool, [-1, w1.get_shape().as_list()[0]])
+        fc1 = tf.nn.add(tf.matmul(fc1, w1) + b1)
+        fc1 = tf.nn.relu(fc1)
 
-                    if i % 100 == 0 or i == tf_epochs-1:
-                            print('%d' % i, '%.3f' % train_loss, '%.3f' % valid_loss, '%.3f' % test_loss,
-                                              '%.3f' % train_acc, '%.3f' % valid_acc, '%.3f' % test_acc,
-                                                sep='\t')
+        fc2 = tf.nn.add(tf.matmul(fc1, w2) + b2)
+        out = tf.add(tf.matmul(fc2, w_out, b_out))
 
-                        # Minibatch
-                        perm = rand.permutation(trainDataVec.shape[1])
-                        for start in range(0, trainDataVec.shape[1], batch_size):
-                            chunk = (slice(None, None), perm[start:start+batch_size])
-                            sess.run(optimizer, feed_dict={x: trainDataVec[chunk],
-                                                           y: trainTarget.T[chunk],
-                                                           lambd: ((lambd_val,),)})
+        pred = out
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y)
+        cost = tf.reduce_mean(cross_entropy)
+        optimizer = tf.train.AdamOptimizer(lr=lr).minimize(cost)
 
-            print()
-            return np.array(results)
+        # performance
+        # correct =
+
+
+
+
+
+         #
+         #
+         #
+         # def tf_train(learning_rate=0.001, stddev=0.5,
+         #           batch_size=500, lambd_val=0, tf_epochs=tf_epochs):
+         #
+         #    optimizer, W, b, y, yhat = nn_layers(n_class = 10, lr=learning_rate, stddev=stddev)
+         #
+         #    # Dictionary to feed in for reporting
+         #    train_dict = {x: trainDataVec,
+         #                  y: trainTarget.T,
+         #                  lambd: ((lambd_val,),)}
+         #    valid_dict = {x: validDataVec,
+         #                  y: validTarget.T,
+         #                  lambd: ((lambd_val,),)}
+         #    test_dict = {x: testDataVec,
+         #                 y: testTarget.T,
+         #                 lambd: ((lambd_val,),)}
+         #
+         #    results = []
+         #
+         #    rand = np.random.RandomState(421)
+         #    init = tf.global_variables_initializer()
+         #    with tf.Session() as sess:
+         #        sess.run(init)
+         #
+         #        print('iter', 'train_loss', 'valid_loss', 'test_loss', 'train_acc', 'valid_acc', 'test_acc', sep='\t')
+         #        for i in range(tf_epochs):
+         #            # Record losses and accuracy
+         #            valid_loss, valid_yhat = sess.run([
+         #                    loss, yhat
+         #                    ], feed_dict=valid_dict)
+         #            valid_acc = np.count_nonzero((valid_yhat > 0.5) == validTarget.T) / validTarget.size
+         #
+         #            test_loss, test_yhat = sess.run([
+         #                    loss, yhat
+         #                    ], feed_dict=test_dict)
+         #            test_acc = np.count_nonzero((test_yhat > 0.5) == testTarget.T) / testTarget.size
+         #
+         #            train_loss, train_yhat = sess.run([
+         #                    loss, yhat
+         #                    ], feed_dict=train_dict)
+         #            train_acc = np.count_nonzero((train_yhat > 0.5) == trainTarget.T) / trainTarget.size
+         #
+         #            results.append(
+         #                    (train_loss, valid_loss, test_loss, train_acc, valid_acc, test_acc)
+         #                    )
+         #
+         #            if i % 100 == 0 or i == tf_epochs-1:
+         #                    print('%d' % i, '%.3f' % train_loss, '%.3f' % valid_loss, '%.3f' % test_loss,
+         #                                      '%.3f' % train_acc, '%.3f' % valid_acc, '%.3f' % test_acc,
+         #                                        sep='\t')
+         #
+         #                # Minibatch
+         #                perm = rand.permutation(trainDataVec.shape[1])
+         #                for start in range(0, trainDataVec.shape[1], batch_size):
+         #                    chunk = (slice(None, None), perm[start:start+batch_size])
+         #                    sess.run(optimizer, feed_dict={x: trainDataVec[chunk],
+         #                                                   y: trainTarget.T[chunk],
+         #                                                   lambd: ((lambd_val,),)})
+         #
+         #    print()
+         #    return np.array(results)
     
 
 # from line_profiler import LineProfiler
