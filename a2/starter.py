@@ -364,10 +364,10 @@ if __name__ == '__main__':
         # filter_height, filter_width, in_channels, out_channels
         # The Glorot normal initializer, also called Xavier normal initializer.
         rand = np.random.RandomState(421)
-        tf.random.set_random_seed(421)
-        w0 = tf.get_variable('w0', shape=(3, 3, 1, 32), initializer=tf.initializers.glorot_normal())
-        w1 = tf.get_variable('w1', shape=(14 * 14 * 32, 784), initializer=tf.initializers.glorot_normal())
-        w2 = tf.get_variable('w2', shape=(784, 10), initializer=tf.glorot_uniform_initializer())
+        tf.set_random_seed(421)
+        w0 = tf.get_variable('w0', shape=(3, 3, 1, 32), initializer=tf.contrib.layers.xavier_initializer())
+        w1 = tf.get_variable('w1', shape=(14 * 14 * 32, 784), initializer=tf.contrib.layers.xavier_initializer())
+        w2 = tf.get_variable('w2', shape=(784, 10), initializer=tf.contrib.layers.xavier_initializer())
 
         b0 = tf.get_variable('B0', shape=(32, ), initializer=tf.initializers.zeros())
         b1 = tf.get_variable('B1', shape=(784, ), initializer=tf.initializers.zeros())
@@ -395,39 +395,47 @@ if __name__ == '__main__':
             name='dropout'
         )
 
-        # Convolution Layer
+        # 2. Convolution Layer
         # Input N x 28 x 28 x 1
         # Output N x 26 x 26 x 32
         # [1, stride, stride, 1]
         conv = tf.nn.conv2d(x, w0, strides=[1, 1, 1, 1], padding='SAME')
         conv = tf.nn.bias_add(conv, b0)
 
-        # ReLU activation
+        # 3. ReLU activation
         conv = tf.nn.relu(conv)
 
-        # batch normalization
+        # 4. batch normalization
         batch_norm = tf.layers.batch_normalization(conv)
 
-        # Max Pooling
+        # 5. Max Pooling
         # Output N x 13 x 13 x 32
         max_pool = tf.layers.max_pooling2d(batch_norm, pool_size=2, strides=2, padding='SAME')
 
-        x_drop = tf.nn.dropout(x, dropout)
         # fc1 = tf.reshape(max_pool, [-1, w1.get_shape().as_list()[0]])
-        # Flatten layer
+        # 6. Flatten layer
         # Output N x (13 x 13 x 32)
         max_pool = tf.layers.flatten(max_pool)
 
-        # Fully connected layer
+        # 7. Fully connected layer
         fc1 = tf.matmul(max_pool, w1) + b1
+
+        # Drop out after 7
+        fc1 = tf.nn.dropout(fc1, dropout)
+
+        # 8. ReLU activation
         fc1 = tf.nn.relu(fc1)
         # Output N x 784
 
+        # 9. Fully connected layer
         out = tf.matmul(fc1, w2) + b2
         # Output N x 10
 
+        # 10. Softmax output
         prob = tf.nn.softmax(out)  # softmax probability
         yhat = tf.argmax(out, axis=-1)
+
+        # 11. Cross Entropy Loss
         cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=prob)
 
         regularizer = tf.contrib.layers.l2_regularizer(scale=lambd)
@@ -537,7 +545,6 @@ if __name__ == '__main__':
             ax[0, i].set_ylabel('Average Cross Entropy Loss')
             ax[0, i].set_xlabel('Epoches')
             ax[0, i].set_xlim([0, n_epoches])
-            ax[0, i].legend(['Training', 'Validation', 'Testing'])
             ax[0, i].grid(True)
         for i in range(3):
             ax[1, i].plot(results_all[[0, 4, 5, 6], :, i+3].T)
