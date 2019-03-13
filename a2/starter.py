@@ -421,7 +421,7 @@ if __name__ == '__main__':
         fc1 = tf.matmul(max_pool, w1) + b1
 
         # Drop out after 7
-        fc1 = tf.nn.dropout(fc1, dropout)
+        fc1 = tf.nn.dropout(fc1, 1 - dropout)
 
         # 8. ReLU activation
         fc1 = tf.nn.relu(fc1)
