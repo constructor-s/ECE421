@@ -408,37 +408,40 @@ if __name__ == '__main__':
 
         # %% Initialize dataset
         trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
+        trainData = trainData[..., np.newaxis]
+        validData = validData[..., np.newaxis]
+        testData = testData[..., np.newaxis]
         newtrain, newvalid, newtest = convertOneHot(trainTarget, validTarget, testTarget)
-        newtrain = newtrain.T
-        newvalid = newvalid.T
-        newtest = newtest.T
+        newtrain = newtrain
+        newvalid = newvalid
+        newtest = newtest
 
         n_class = 10
+        batch_size = 32
 
         # %%
-        tf.set_random_seed(421)
 
         # Model parameters (Variables)
         # filter_height, filter_width, in_channels, out_channels
         # The Glorot normal initializer, also called Xavier normal initializer.
         w0 = tf.get_variable('w0', shape=(3, 3, 1, 32), initializer=tf.initializers.glorot_normal())
-        w1 = tf.get_variable('w1', shape=(13 * 13 * 32, 784), initializer=tf.initializers.glorot_normal())
+        w1 = tf.get_variable('w1', shape=(14 * 14 * 32, 784), initializer=tf.initializers.glorot_normal())
         w2 = tf.get_variable('w2', shape=(784, 10), initializer=tf.glorot_uniform_initializer())
 
-        b0 = tf.get_variable('B0', shape=(32, ), initializer=tf.contrib.layers.xavier_initializer())
-        b1 = tf.get_variable('B1', shape=(784, ), initializer=tf.contrib.layers.xavier_initializer())
-        b2 = tf.get_variable('B2', shape=(10, ), initializer=tf.contrib.layers.xavier_initializer())
+        b0 = tf.get_variable('B0', shape=(32, ), initializer=tf.initializers.zeros())
+        b1 = tf.get_variable('B1', shape=(784, ), initializer=tf.initializers.zeros())
+        b2 = tf.get_variable('B2', shape=(10, ), initializer=tf.initializers.zeros())
 
         # Data inputs (Placeholders)
         x = tf.placeholder(
             dtype=tf.float32,
             shape=[None, 28, 28, 1],  # batch, in_height, in_width, in_channels
-            name='data'
+            name='x'
         )
         y = tf.placeholder(
             dtype=tf.float32,
             shape=[None, n_class],
-            name='label'
+            name='y'
         )
 
         # Convolution Layer
@@ -452,19 +455,23 @@ if __name__ == '__main__':
         conv = tf.nn.relu(conv)
 
         # batch normalization
-        batch_norm = tf.nn.batch_normalization(conv)
+        print('conv', conv.shape)
+        batch_norm = tf.layers.batch_normalization(conv)
+        print('batch_norm', batch_norm.shape)
 
         # Max Pooling
         # Output N x 13 x 13 x 32
         max_pool = tf.layers.max_pooling2d(batch_norm, pool_size=2, strides=2, padding='SAME')
+        print('max_pool', max_pool.shape)
 
         # Fully connected layer
         #    x_drop = tf.nn.dropout(x, dropout)
         # fc1 = tf.reshape(max_pool, [-1, w1.get_shape().as_list()[0]])
         # Flatten layer
         # Output N x (13 x 13 x 32)
-        fc1 = tf.layers.flatten(x)
+        fc1 = tf.layers.flatten(max_pool)
 
+        print('fc1', fc1.shape)
         fc1 = tf.matmul(fc1, w1) + b1
         fc1 = tf.nn.relu(fc1)
         # Output N x 784
@@ -473,10 +480,68 @@ if __name__ == '__main__':
         # Output N x 10
 
         prob = tf.nn.softmax(out)
-        pred = tf.argmax(out, axis=-1)
-        cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=pred)
-        cost = tf.reduce_mean(cross_entropy)
-        optimizer = tf.train.AdamOptimizer(lr=lr).minimize(cost)
+        yhat = tf.argmax(out, axis=-1)
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=prob)
+        loss = tf.reduce_mean(cross_entropy)
+        optimizer = tf.train.AdamOptimizer(learning_rate=1.0e-4)
+
+        # Dictionary to feed in for reporting
+        train_dict = {x: trainData,
+                      y: newtrain}
+        valid_dict = {x: validData,
+                      y: newvalid}
+        test_dict = {x: testData,
+                     y: newtest}
+
+        rand = np.random.RandomState(421)
+
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+
+        train_op = optimizer.minimize(loss)
+        train_op = tf.group([train_op, update_ops])
+
+        results = []
+        init = tf.global_variables_initializer()
+        with tf.Session() as sess:
+            sess.run(init)
+
+            print('iter', 'train_loss', 'valid_loss', 'test_loss', 'train_acc', 'valid_acc', 'test_acc')
+            for i in range(500):
+                # Record losses and accuracy
+                valid_loss, valid_yhat = sess.run([
+                        loss, yhat
+                        ], feed_dict=valid_dict)
+                valid_acc = np.count_nonzero(valid_yhat == validTarget) / validTarget.size
+                
+                test_loss, test_yhat = sess.run([
+                        loss, yhat
+                        ], feed_dict=test_dict)
+                test_acc = np.count_nonzero(test_yhat == testTarget) / testTarget.size
+                
+                train_loss, train_yhat = sess.run([
+                        loss, yhat
+                        ], feed_dict=train_dict)
+                train_acc = np.count_nonzero(train_yhat == trainTarget) / trainTarget.size
+
+                results.append(
+                            (train_loss, valid_loss, test_loss, train_acc, valid_acc, test_acc)
+                            )
+                print(i, results[-1])
+
+                # Minibatch
+                perm = rand.permutation(trainData.shape[0])
+                for start in range(0, trainData.shape[0], batch_size):
+                    chunk = perm[start:start+batch_size]
+                    sess.run(train_op, feed_dict={x: trainData[chunk, ...],
+                                                   y: newtrain[chunk, ...]})
+
+
+
+
+
+
+
+            sess.run([prob], feed_dict=train_dict)
 
         # performance
         # correct =
