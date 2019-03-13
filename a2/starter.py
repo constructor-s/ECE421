@@ -405,25 +405,34 @@ if __name__ == '__main__':
 
     #%% neural network training
     if run_part_2:
+
+        # %% Initialize dataset
+        trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
+        newtrain, newvalid, newtest = convertOneHot(trainTarget, validTarget, testTarget)
+        newtrain = newtrain.T
+        newvalid = newvalid.T
+        newtest = newtest.T
+
+        n_class = 10
+
+        # %%
         tf.set_random_seed(421)
 
         # Model parameters (Variables)
-        w0 = tf.get_variable('w0', shape=(3, 3, 1, 32), initializer=tf.glorot_uniform_initializer())
-        w1 = tf.get_variable('w1', shape=(4 * 4 * 128, 128), initializer=tf.glorot_uniform_initializer())
-        w2 = tf.get_variable('w2', shape=(4 * 4 * 128, 128), initializer=tf.glorot_uniform_initializer())
-        w_out = tf.get_variable('w3', shape=(128, n_class), initializer=tf.glorot_uniform_initializer())
+        # filter_height, filter_width, in_channels, out_channels
+        # The Glorot normal initializer, also called Xavier normal initializer.
+        w0 = tf.get_variable('w0', shape=(3, 3, 1, 32), initializer=tf.initializers.glorot_normal())
+        w1 = tf.get_variable('w1', shape=(13 * 13 * 32, 784), initializer=tf.initializers.glorot_normal())
+        w2 = tf.get_variable('w2', shape=(784, 10), initializer=tf.glorot_uniform_initializer())
 
-        b0 = tf.get_variable('B0', shape=(32), initializer=tf.contrib.layers.xavier_initializer())
-        b1 = tf.get_variable('B1', shape=(128), initializer=tf.contrib.layers.xavier_initializer())
-        b2 = tf.get_variable('B2', shape=(128), initializer=tf.contrib.layers.xavier_initializer())
-        b_out = tf.get_variable('B3', shape=(10), initializer=tf.contrib.layers.xavier_initializer())
+        b0 = tf.get_variable('B0', shape=(32, ), initializer=tf.contrib.layers.xavier_initializer())
+        b1 = tf.get_variable('B1', shape=(784, ), initializer=tf.contrib.layers.xavier_initializer())
+        b2 = tf.get_variable('B2', shape=(10, ), initializer=tf.contrib.layers.xavier_initializer())
 
-        W = [w0, w1, w2, w_out]
-        b = [b0, b1, b2, b_out]
         # Data inputs (Placeholders)
         x = tf.placeholder(
             dtype=tf.float32,
-            shape=[None, 28, 28, 1],
+            shape=[None, 28, 28, 1],  # batch, in_height, in_width, in_channels
             name='data'
         )
         y = tf.placeholder(
@@ -432,39 +441,49 @@ if __name__ == '__main__':
             name='label'
         )
 
-        x = tf.reshape(x, shape=[-1, 28, 28, 1])  # 784 is 28 * 28 matrix
-
         # Convolution Layer
-        conv = tf.nn.conv2d(x, w0, filter=[1, 1, 3, 32], strides=[1, 1, 1, 1], padding='SAME')  # RGB:3??
+        # Input N x 28 x 28 x 1
+        # Output N x 26 x 26 x 32
+        # [1, stride, stride, 1]
+        conv = tf.nn.conv2d(x, w0, strides=[1, 1, 1, 1], padding='SAME')
         conv = tf.nn.bias_add(conv, b0)
+
+        # ReLU activation
         conv = tf.nn.relu(conv)
 
         # batch normalization
         batch_norm = tf.nn.batch_normalization(conv)
 
         # Max Pooling
-        max_pool = tf.maxpool2d(batch_norm, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+        # Output N x 13 x 13 x 32
+        max_pool = tf.layers.max_pooling2d(batch_norm, pool_size=2, strides=2, padding='SAME')
 
         # Fully connected layer
         #    x_drop = tf.nn.dropout(x, dropout)
-        fc1 = tf.reshape(max_pool, [-1, w1.get_shape().as_list()[0]])
-        fc1 = tf.nn.add(tf.matmul(fc1, w1) + b1)
+        # fc1 = tf.reshape(max_pool, [-1, w1.get_shape().as_list()[0]])
+        # Flatten layer
+        # Output N x (13 x 13 x 32)
+        fc1 = tf.layers.flatten(x)
+
+        fc1 = tf.matmul(fc1, w1) + b1
         fc1 = tf.nn.relu(fc1)
+        # Output N x 784
 
-        fc2 = tf.nn.add(tf.matmul(fc1, w2) + b2)
-        out = tf.add(tf.matmul(fc2, w_out, b_out))
+        out = tf.matmul(fc1, w2) + b2
+        # Output N x 10
 
-        pred = out
-        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y)
+        prob = tf.nn.softmax(out)
+        pred = tf.argmax(out, axis=-1)
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=y, logits=pred)
         cost = tf.reduce_mean(cross_entropy)
         optimizer = tf.train.AdamOptimizer(lr=lr).minimize(cost)
 
         # performance
         # correct =
 
-
-
-
+        # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        # train_op = optimizer.minimize(loss)
+        # train_op = tf.group([train_op, update_ops])
 
          #
          #
