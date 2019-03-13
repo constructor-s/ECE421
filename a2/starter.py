@@ -365,9 +365,9 @@ if __name__ == '__main__':
         # The Glorot normal initializer, also called Xavier normal initializer.
         rand = np.random.RandomState(421)
         tf.set_random_seed(421)
-        w0 = tf.get_variable('w0', shape=(3, 3, 1, 32), initializer=tf.contrib.layers.xavier_initializer())
-        w1 = tf.get_variable('w1', shape=(14 * 14 * 32, 784), initializer=tf.contrib.layers.xavier_initializer())
-        w2 = tf.get_variable('w2', shape=(784, 10), initializer=tf.contrib.layers.xavier_initializer())
+        w0 = tf.get_variable('w0', shape=(3, 3, 1, 32), initializer=tf.contrib.layers.xavier_initializer(uniform=False))
+        w1 = tf.get_variable('w1', shape=(14 * 14 * 32, 784), initializer=tf.contrib.layers.xavier_initializer(uniform=False))
+        w2 = tf.get_variable('w2', shape=(784, 10), initializer=tf.contrib.layers.xavier_initializer(uniform=False))
 
         b0 = tf.get_variable('B0', shape=(32, ), initializer=tf.initializers.zeros())
         b1 = tf.get_variable('B1', shape=(784, ), initializer=tf.initializers.zeros())
