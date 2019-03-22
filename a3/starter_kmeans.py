@@ -38,7 +38,7 @@ def distanceFunc(X, MU):
     D = X.shape[1]
 
     X = X.reshape(N,1,D)
-    pair_dist = zeros((N,K))
+    pair_dist = np.zeros((N,K))
     
     diff = X - MU
     sq_sum = np.sum(diff ** 2, axis = 2)
