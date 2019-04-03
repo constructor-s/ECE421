@@ -162,16 +162,3 @@ if __name__ == '__main__':
             
             fig.savefig('1_k%d_valid.png' % K, dpi=150, transparent=True, bbox_inches='tight', pad_inches=0.1)
             fig.show()
-            
-            
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
