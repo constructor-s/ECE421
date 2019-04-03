@@ -33,11 +33,11 @@ def distanceFunc(X, MU):
     
     
 if __name__ == '__main__':
-    for is_valid in (False, True):
+    for is_valid in (True, ):
         # Loading data
-        data = np.load('data2D.npy')
-        
-        #data = np.load('data100D.npy')
+#        data = np.load('data2D.npy')
+        suffix = '_100D'
+        data = np.load('data100D.npy')
         [num_pts, dim] = np.shape(data)
         
         # For Validation set
@@ -54,7 +54,7 @@ if __name__ == '__main__':
         pred_dict = {}
         valid_loss_dict = {}
         valid_pred_dict = {}
-        for K in range(1, 6):
+        for K in [5, 10, 15, 20, 30]:
             print('Training K = %d' % K)
             D = data.shape[1]
             N = data.shape[0]
@@ -112,53 +112,58 @@ if __name__ == '__main__':
         
     #%%    
         if not is_valid:
-            fig, ax = plt.subplots(2, 5, figsize=(20, 8), sharey='row')
+            fig, ax = plt.subplots(2, len(loss_dict), figsize=(20, 8), sharey='row')
         else:
-            fig, ax = plt.subplots(4, 5, figsize=(20, 20), sharey='row')
+            fig, ax = plt.subplots(4, len(loss_dict), figsize=(20, 20), sharey='row')
             
-        for K in range(1, 6):
+        for i, K in enumerate(loss_dict):
             loss_curve = loss_dict[K]
             pred_list = pred_dict[K]
             pred_val = pred_list[-1]
             
-            ax[0, K-1].plot(loss_curve)
-            ax[0, K-1].set_xlabel('Number of updates')
-            ax[0, K-1].set_ylabel('Training Loss')
-            ax[0, K-1].grid()
-            ax[0, K-1].set_title('K = %d\nfinal loss = %.2g' % (K, loss_curve[-1]))
+            ax[0, i].plot(loss_curve)
+            ax[0, i].set_xlabel('Number of updates')
+            ax[0, i].set_ylabel('Training Loss')
+            ax[0, i].grid()
+            ax[0, i].set_title('K = %d\nfinal loss = %.3g' % (K, loss_curve[-1]))
             
+            print('K=', K)
             for k in range(K):
-                ax[1, K-1].plot(data[pred_val == k, 0], data[pred_val == k, 1], '.', alpha=0.3, markeredgewidth=0.0)
-                print('Cluster %d' % k, np.count_nonzero(pred_val == k), np.count_nonzero(pred_val == k) * 1.0 / len(pred_val))
+                ax[1, i].plot(data[pred_val == k, 0], data[pred_val == k, 1], '.', alpha=2000.0 / data.shape[0], markeredgewidth=0.0)
+                print('Cluster', k, np.count_nonzero(pred_val == k), np.count_nonzero(pred_val == k) * 1.0 / len(pred_val))
             print()
-            ax[1, K-1].grid()
-            ax[1, K-1].set_xlabel('dim 0')
-            ax[1, K-1].set_ylabel('dim 1')
-            ax[1, K-1].axis('equal')
-            ax[1, K-1].legend([str(k) for k in range(K)])
+            ax[1, i].grid()
+            ax[1, i].set_xlabel('dim 0')
+            ax[1, i].set_ylabel('dim 1')
+            ax[1, i].axis('equal')
+            if K <= 10:
+                ax[1, i].legend([str(k) for k in range(K)])
         
         if not is_valid:
-            fig.savefig('1_k%d.png' % K, dpi=150, transparent=True, bbox_inches='tight', pad_inches=0.1)
+            fig.savefig('1_k%d%s.png' % (K, suffix), dpi=150, transparent=True, bbox_inches='tight', pad_inches=0.1)
             fig.show()
         else:
-            for K in range(1, 6):
+            for i, K in enumerate(loss_dict):
                 loss_curve = valid_loss_dict[K]
                 pred_list = valid_pred_dict[K]
                 pred_val = pred_list[-1]
                 
-                ax[2, K-1].plot(loss_curve)
-                ax[2, K-1].set_xlabel('Number of updates')
-                ax[2, K-1].set_ylabel('Validation Loss')
-                ax[2, K-1].grid()
-                ax[2, K-1].set_title('final loss = %.2g' % loss_curve[-1])
+                ax[2, i].plot(loss_curve)
+                ax[2, i].set_xlabel('Number of updates')
+                ax[2, i].set_ylabel('Validation Loss')
+                ax[2, i].grid()
+                ax[2, i].set_title('final loss = %.3g' % loss_curve[-1])
                 
                 for k in range(K):
-                    ax[3, K-1].plot(val_data[pred_val == k, 0], val_data[pred_val == k, 1], '.', alpha=0.3, markeredgewidth=0.0)
-                ax[3, K-1].grid()
-                ax[3, K-1].set_xlabel('dim 0')
-                ax[3, K-1].set_ylabel('dim 1')
-                ax[3, K-1].axis('equal')
-                ax[3, K-1].legend([str(k) for k in range(K)])
+                    ax[3, i].plot(val_data[pred_val == k, 0], val_data[pred_val == k, 1], '.', alpha=2000.0 / data.shape[0], markeredgewidth=0.0)
+                    print('Cluster', k, np.count_nonzero(pred_val == k), np.count_nonzero(pred_val == k) * 1.0 / len(pred_val))
+                print()
+                ax[3, i].grid()
+                ax[3, i].set_xlabel('dim 0')
+                ax[3, i].set_ylabel('dim 1')
+                ax[3, i].axis('equal')
+                if K <= 10:
+                    ax[3, i].legend([str(k) for k in range(K)])
             
-            fig.savefig('1_k%d_valid.png' % K, dpi=150, transparent=True, bbox_inches='tight', pad_inches=0.1)
+            fig.savefig('1_k%d_valid%s.png' % (K, suffix), dpi=150, transparent=True, bbox_inches='tight', pad_inches=0.1)
             fig.show()
