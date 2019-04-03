@@ -93,7 +93,7 @@ def log_posterior(log_PDF, log_pi):
 
 
 if __name__ == '__main__':
-    for is_valid in (True, ):
+    for is_valid in (True, ): # (False, True, ):
         # Loading data
 #        data = np.load('data2D.npy')
         suffix = '_100D'
@@ -114,7 +114,7 @@ if __name__ == '__main__':
         pred_dict = {}
         valid_loss_dict = {}
         valid_pred_dict = {}
-        for K in [5, 10, 15, 20, 30]:
+        for K in [5, 10, 15, 20, 30]: # np.arange(1, 6):  # [5, 10, 15, 20, 30]:
             print('Training K = %d' % K)
             D = data.shape[1]
             N = data.shape[0]
@@ -216,6 +216,21 @@ if __name__ == '__main__':
         if not is_valid:
             fig.savefig('2_k%d%s.png' % (K, suffix), dpi=150, transparent=True, bbox_inches='tight', pad_inches=0.1)
             fig.show()
+            
+            fig, ax = plt.subplots()
+            K = 3
+            loss_curve = loss_dict[K]
+            pred_list = pred_dict[K]
+            pred_val = pred_list[-1]
+            
+            ax.plot(loss_curve)
+            ax.set_xlabel('Number of updates')
+            ax.set_ylabel('Training Loss')
+            ax.grid()
+            ax.set_title('K = %d\nfinal loss = %.3g' % (K, loss_curve[-1]))
+            fig.savefig('2_k%d%s.png' % (K, suffix), dpi=150, transparent=True, bbox_inches='tight', pad_inches=0.1)
+            fig.show()
+            
         else:
             for i, K in enumerate(loss_dict):
                 loss_curve = valid_loss_dict[K]
